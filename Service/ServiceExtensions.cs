@@ -1,0 +1,126 @@
+using System;
+using DnsClient;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Tokenaire.Database;
+using Tokenaire.Database.Models;
+
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Tokenaire.Service.Models.Models;
+using Tokenaire.Service.Models;
+using RestSharp;
+using Loggly;
+
+namespace Tokenaire.Service
+{
+    public static class ServiceExtensions
+    {
+        public static void AddServices(this IServiceCollection services)
+        {
+            services.AddScoped<IUserService, UserService>();
+
+            services.AddSingleton<IJwtService, JwtService>();
+            services.AddSingleton<IRestClient, RestClient>();
+            services.AddSingleton<IEmailService, EmailService>();
+            services.AddSingleton<ICurve25519Service, Curve25519Service>();
+
+            services.AddSingleton<IWavesRootNodeService, WavesRootNodeService>();
+            services.AddSingleton<IWavesAddressesNodeService, WavesAddressesNodeService>();
+            services.AddTransient<IWavesNodeRestClientService, WavesNodeRestClientService>();
+
+            services.AddSingleton<ILogglyClient, LogglyClient>();
+            services.AddSingleton<ILogService, LogService>();
+            services.AddSingleton<IChangellyService, ChangellyService>();
+            services.AddSingleton<IBitcoinService, BitcoinService>();
+
+            services.AddSingleton<ILookupClient, LookupClient>((x) => new LookupClient()
+            {
+                Timeout = TimeSpan.FromSeconds(5)
+            });
+
+            services.TryAddTransient<IHttpContextAccessor, HttpContextAccessor>();
+        }
+
+        public static void AddAuthenticationCustom(this IServiceCollection services, IConfiguration configuration, ISettingsService settingsService)
+        {
+            var secretKey = settingsService.JwtSecret;
+            var signingKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey));
+            var jwtAppSettingOptions = configuration.GetSection(nameof(ServiceJwtIssuerOptions));
+
+            services.Configure<ServiceJwtIssuerOptions>(options =>
+            {
+                options.Issuer = jwtAppSettingOptions[nameof(ServiceJwtIssuerOptions.Issuer)];
+                options.Audience = jwtAppSettingOptions[nameof(ServiceJwtIssuerOptions.Audience)];
+                options.SigningCredentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+            });
+
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = jwtAppSettingOptions[nameof(ServiceJwtIssuerOptions.Issuer)],
+
+                ValidateAudience = true,
+                ValidAudience = jwtAppSettingOptions[nameof(ServiceJwtIssuerOptions.Audience)],
+
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = signingKey,
+
+                RequireExpirationTime = false,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+
+            }).AddJwtBearer(configureOptions =>
+            {
+                configureOptions.ClaimsIssuer = jwtAppSettingOptions[nameof(ServiceJwtIssuerOptions.Issuer)];
+                configureOptions.TokenValidationParameters = tokenValidationParameters;
+                configureOptions.SaveToken = true;
+            });
+
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("ApiUser", policy =>
+                    policy.RequireClaim(
+                        ServiceConstants.Strings.JwtClaimIdentifiers.Rol,
+                        ServiceConstants.Strings.JwtClaims.ApiAccess));
+            });
+
+
+            services.AddIdentity<DatabaseUser, IdentityRole>()
+        .AddEntityFrameworkStores<TokenaireContext>()
+        .AddDefaultTokenProviders();
+
+            services.Configure<IdentityOptions>(options =>
+            {
+                // Password settings
+                options.Password.RequireDigit = false;
+                options.Password.RequiredLength = 8;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequireLowercase = false;
+                options.Password.RequiredUniqueChars = 1;
+
+                // Lockout settings
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(30);
+                options.Lockout.MaxFailedAccessAttempts = 10;
+                options.Lockout.AllowedForNewUsers = true;
+
+                options.User.RequireUniqueEmail = true;
+            });
+
+
+        }
+    }
+}
+
