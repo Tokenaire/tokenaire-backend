@@ -41,9 +41,6 @@ namespace Tokenaire.Service
             config.Transport.EndpointPort = 443;
             config.Transport.LogTransport = LogTransport.Https;
 
-            var ct = new ApplicationNameTag();
-            ct.Formatter = "application-{0}";
-            config.TagConfig.Tags.Add(ct);
             this.logglyClient = logglyClient;
         }
 
@@ -51,10 +48,10 @@ namespace Tokenaire.Service
         {
             var logEvent = new LogglyEvent();
 
-            logEvent.Data.Add("message", error.Message, DateTime.Now);
-            logEvent.Data.Add("context", new
+            logEvent.Data.Add("message", new
             {
                 Date = DateTime.UtcNow,
+                error = error.Message
             });
 
             await this.logglyClient.Log(logEvent);

@@ -36,7 +36,6 @@ namespace Tokenaire.Service
         private readonly IEmailService emailService;
         private readonly IJwtService jwtService;
         private readonly ICurve25519Service curve25519Service;
-        private readonly IIcoFundsService icoFundsService;
         private readonly IWavesAddressesNodeService wavesAddressesNodeService;
 
         public UserService(UserManager<DatabaseUser> userManager,
