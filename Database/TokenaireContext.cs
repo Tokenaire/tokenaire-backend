@@ -8,6 +8,7 @@ namespace Tokenaire.Database
     {
         public DbSet<DatabaseEmail> Emails { get; set; }
         public DbSet<DatabaseUser> Users { get; set; }
+        public DbSet<DatabaseIcOOutboundAIRETransaction> ICOOutboundAIRETransactions { get; set; }
 
         public TokenaireContext(DbContextOptions<TokenaireContext> options) : base(options)
         {
@@ -18,6 +19,7 @@ namespace Tokenaire.Database
         {
             modelBuilder.ApplyConfiguration(new DatabaseEmailConfig());
             modelBuilder.ApplyConfiguration(new DatabaseUserConfig());
+            modelBuilder.ApplyConfiguration(new DatabaseICOOutboundAIRETransactionConfig());
 
         }
     }

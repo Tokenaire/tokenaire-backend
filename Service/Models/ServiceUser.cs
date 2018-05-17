@@ -1,14 +1,16 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
+using Tokenaire.Service.Enums;
 
 namespace Tokenaire.Service.Models
 {
-    public class ServiceUserLoginResult
+    public class ServiceUser
     {
-        public List<ServiceGenericError> Errors { get; set; }
-        public ServiceJwtToken Jwt { get; set; }
-        public string EncryptedSeed { get; set; }
+        public string Id { get; set; }
+        public string Email { get; set; }
+        public string Address { get; set; }
+
         public string ICOBTCAddress { get; set; }
     }
 }

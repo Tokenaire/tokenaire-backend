@@ -20,8 +20,11 @@ namespace Tokenaire.Service
 {
     public interface IUserService
     {
+        Task<List<ServiceUser>> GetUsers();
+
         Task<ServiceUserCreateResult> Create(ServiceUserCreate model);
         Task<ServiceUserLoginResult> Login(ServiceUserLogin model);
+
 
         Task<bool> IsEmailTaken(string email);
 
@@ -33,6 +36,7 @@ namespace Tokenaire.Service
         private readonly IEmailService emailService;
         private readonly IJwtService jwtService;
         private readonly ICurve25519Service curve25519Service;
+        private readonly IIcoFundsService icoFundsService;
         private readonly IWavesAddressesNodeService wavesAddressesNodeService;
 
         public UserService(UserManager<DatabaseUser> userManager,
@@ -46,6 +50,20 @@ namespace Tokenaire.Service
             this.jwtService = jwtService;
             this.curve25519Service = curve25519Service;
             this.wavesAddressesNodeService = wavesAddressesNodeService;
+        }
+
+        public async Task<List<ServiceUser>> GetUsers()
+        {
+            var dbUsers = await this.userManager.Users.ToArrayAsync();
+            return dbUsers.Select((dbUser) =>
+            {
+                return new ServiceUser()
+                {
+                    Id = dbUser.Id,
+                    Address = dbUser.Address,
+                    ICOBTCAddress = dbUser.ICOBTCAddress
+                };
+            }).ToList();
         }
 
         public async Task<ServiceUserCreateResult> Create(ServiceUserCreate model)
@@ -131,7 +149,9 @@ namespace Tokenaire.Service
 
                 Address = model.Address,
                 PublicKey = model.PublicKey,
-                Signature = model.Signature
+                Signature = model.Signature,
+
+                ICOBTCAddress = model.ICOBTCAddress
             },
             model.HashedPassword);
 
@@ -199,6 +219,8 @@ namespace Tokenaire.Service
                 Errors = new List<ServiceGenericError>(),
                 EncryptedSeed = user.EncryptedSeed,
                 Jwt = jwt,
+
+                ICOBTCAddress = user.ICOBTCAddress
             };
         }
 

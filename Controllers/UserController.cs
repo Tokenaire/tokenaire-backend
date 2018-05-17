@@ -18,10 +18,12 @@ namespace tokenaire_backend.Controllers
     public class UserController : Controller
     {
         private readonly IUserService _userService;
+        private readonly IIcoFundsService icoFundsService;
 
-        public UserController(IUserService userService)
+        public UserController(IUserService userService, IIcoFundsService icoFundsService)
         {
             _userService = userService;
+            this.icoFundsService = icoFundsService;
         }
 
         [AllowAnonymous]
@@ -42,6 +44,7 @@ namespace tokenaire_backend.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody]DtoUserCreate model)
         {
+            var ICOBTCAddress = await this.icoFundsService.GenerateICOBtcAddressForUser(model?.Email);
             var serviceResult = await _userService.Create(new ServiceUserCreate()
             {
                 Email = model?.Email,
@@ -50,7 +53,9 @@ namespace tokenaire_backend.Controllers
 
                 Address = model?.Address,
                 PublicKey = model?.PublicKey,
-                Signature = model?.Signature
+                Signature = model?.Signature,
+
+                ICOBTCAddress = ICOBTCAddress
             });
 
             if (serviceResult.Errors.Count > 0)
@@ -59,7 +64,8 @@ namespace tokenaire_backend.Controllers
             }
 
             return Ok(new DtoUserCreateResult() {
-                AuthToken = serviceResult.Jwt.AuthToken
+                AuthToken = serviceResult.Jwt.AuthToken,
+                ICOBTCAddress = ICOBTCAddress
             });
         }
 
@@ -81,7 +87,8 @@ namespace tokenaire_backend.Controllers
 
             return Ok(new DtoUserLoginResult() {
                 AuthToken = serviceResult.Jwt.AuthToken,
-                EncryptedSeed = serviceResult.EncryptedSeed
+                EncryptedSeed = serviceResult.EncryptedSeed,
+                ICOBTCAddress = serviceResult.ICOBTCAddress
             });
         }
     }

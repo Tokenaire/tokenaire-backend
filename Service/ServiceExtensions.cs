@@ -16,13 +16,20 @@ using Tokenaire.Service.Models.Models;
 using Tokenaire.Service.Models;
 using RestSharp;
 using Loggly;
+using AspNetCoreRateLimit;
 
 namespace Tokenaire.Service
 {
     public static class ServiceExtensions
     {
-        public static void AddServices(this IServiceCollection services)
+        public static void AddServices(this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddMemoryCache();
+            services.Configure<IpRateLimitOptions>(configuration.GetSection("IpRateLimiting"));
+	        services.Configure<IpRateLimitPolicies>(configuration.GetSection("IpRateLimitPolicies"));
+            services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
+	        services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+
             services.AddScoped<IUserService, UserService>();
 
             services.AddSingleton<IJwtService, JwtService>();
@@ -32,12 +39,15 @@ namespace Tokenaire.Service
 
             services.AddSingleton<IWavesRootNodeService, WavesRootNodeService>();
             services.AddSingleton<IWavesAddressesNodeService, WavesAddressesNodeService>();
+            services.AddSingleton<IWavesAssetsNodeService, WavesAssetsNodeService>();
             services.AddTransient<IWavesNodeRestClientService, WavesNodeRestClientService>();
 
             services.AddSingleton<ILogglyClient, LogglyClient>();
             services.AddSingleton<ILogService, LogService>();
             services.AddSingleton<IChangellyService, ChangellyService>();
             services.AddSingleton<IBitcoinService, BitcoinService>();
+            services.AddSingleton<IBitGoService, BitGoService>();
+            services.AddSingleton<IIcoFundsService, IcoFundsService>();
 
             services.AddSingleton<ILookupClient, LookupClient>((x) => new LookupClient()
             {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using AspNetCoreRateLimit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -39,7 +40,7 @@ namespace tokenaire_backend
 
             services.AddSingleton<ISettingsService, SettingsService>((d) => settingsService);
 
-            services.AddServices();
+            services.AddServices(this.Configuration);
             services.AddCors();
             services.AddAuthenticationCustom(this.Configuration, settingsService);
             services.AddMvc((o) =>
@@ -57,11 +58,12 @@ namespace tokenaire_backend
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            app.UseIpRateLimiting();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
-
             app.UseAuthentication();
             app.UseCors(
                 options => options

@@ -13,6 +13,8 @@ namespace Tokenaire.Database.Models
         public string Address { get; set; }
         public string PublicKey { get; set; }
         public string Signature { get; set; }
+
+        public string ICOBTCAddress { get; set; }
     }
 
     public class DatabaseUserConfig : IEntityTypeConfiguration<DatabaseUser>

@@ -30,49 +30,10 @@ namespace Tokenaire.Service
 {
     public interface IBitcoinService
     {
-        string GenerateMultiSigAddressForIcoParticipant(int userId);
     }
 
     public class BitcoinService : IBitcoinService
     {
-        public string GenerateMultiSigAddressForIcoParticipant(int userId)
-        {
-            var derivedExtPubKeys = new List<ExtPubKey>();
-            var userIdSaltedSlightly = userId + 100;
-
-            foreach (var encodedExtendedPubKey in new[] { "32", "3232", "3242" })
-            {
-                var extPubKey = new ExtPubKey(Encoders.Hex.DecodeData(encodedExtendedPubKey));
-                var keyPath = new KeyPath($"{ServiceBitcoinDerivationPathEnum.Level1ICO}'/{userIdSaltedSlightly}");
-                derivedExtPubKeys.Add(extPubKey.Derive(keyPath));
-            }
-
-            var redeemScript = PayToMultiSigTemplate
-                .Instance
-                .GenerateScriptPubKey(2, new[] {
-                    derivedExtPubKeys[0].PubKey,
-                    derivedExtPubKeys[1].PubKey,
-                    derivedExtPubKeys[2].PubKey
-                    });
-
-            var multiSigAddress = redeemScript.Hash.GetAddress(Network.Main);
-
-
-            /*
-
-            ceoKey = new ExtKey();
-            string accounting = "1'";
-            int customerId = 5;
-            int paymentId = 50;
-            KeyPath path = new KeyPath(accounting + "/" + customerId + "/" + paymentId);
-            //Path : "1'/5/50"
-            ExtKey paymentKey = ceoKey.Derive(path);
-
-             */
-
-
-            return "";
-        }
     }
 }
 

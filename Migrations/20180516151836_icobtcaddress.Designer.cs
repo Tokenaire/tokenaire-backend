@@ -11,9 +11,10 @@ using Tokenaire.Database;
 namespace tokenairebackend.Migrations
 {
     [DbContext(typeof(TokenaireContext))]
-    partial class TokenaireContextModelSnapshot : ModelSnapshot
+    [Migration("20180516151836_icobtcaddress")]
+    partial class icobtcaddress
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -38,28 +39,6 @@ namespace tokenairebackend.Migrations
                         .HasFilter("[Value] IS NOT NULL");
 
                     b.ToTable("Emails");
-                });
-
-            modelBuilder.Entity("Tokenaire.Database.Models.DatabaseIcOOutboundAIRETransaction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd();
-
-                    b.Property<string>("AddressSource");
-
-                    b.Property<string>("Content");
-
-                    b.Property<bool?>("IsSuccessful");
-
-                    b.Property<string>("TxIdSource");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TxIdSource", "AddressSource")
-                        .IsUnique()
-                        .HasFilter("[TxIdSource] IS NOT NULL AND [AddressSource] IS NOT NULL");
-
-                    b.ToTable("ICOOutboundAIRETransactions");
                 });
 
             modelBuilder.Entity("Tokenaire.Database.Models.DatabaseUser", b =>

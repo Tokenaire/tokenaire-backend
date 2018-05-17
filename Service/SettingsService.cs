@@ -29,6 +29,8 @@ namespace Tokenaire.Service
         string BitGoICOFundsApiKey { get; }
         string WavesNodeApiKey { get; }
         string LogglyBackendToken { get; }
+
+        string WavesICOAireWalletPrivateKey { get; }
     }
 
     public class SettingsService : ISettingsService
@@ -64,6 +66,12 @@ namespace Tokenaire.Service
         public string LogglyBackendToken
         {
             get => this.EnvironmentVariable("LogglyBackendToken", "TOKENAIRE_LOGGLY_BACKEND_TOKEN");
+        }
+
+
+        public string WavesICOAireWalletPrivateKey
+        {
+            get => this.EnvironmentVariable("WavesICOAireWalletPrivateKey", "TOKENAIRE_WAVESICOAIREWALLET_PRIVATEKEY");
         }
 
         public SettingsService(
