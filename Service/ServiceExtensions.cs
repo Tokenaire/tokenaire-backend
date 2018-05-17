@@ -31,10 +31,12 @@ namespace Tokenaire.Service
 	        services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
 
             services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IIcoFundsService, IcoFundsService>();
+            services.AddScoped<IEmailService, EmailService>();
+
 
             services.AddSingleton<IJwtService, JwtService>();
             services.AddSingleton<IRestClient, RestClient>();
-            services.AddSingleton<IEmailService, EmailService>();
             services.AddSingleton<ICurve25519Service, Curve25519Service>();
 
             services.AddSingleton<IWavesRootNodeService, WavesRootNodeService>();
@@ -47,7 +49,6 @@ namespace Tokenaire.Service
             services.AddSingleton<IChangellyService, ChangellyService>();
             services.AddSingleton<IBitcoinService, BitcoinService>();
             services.AddSingleton<IBitGoService, BitGoService>();
-            services.AddSingleton<IIcoFundsService, IcoFundsService>();
 
             services.AddSingleton<ILookupClient, LookupClient>((x) => new LookupClient()
             {

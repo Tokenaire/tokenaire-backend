@@ -95,7 +95,7 @@ namespace Tokenaire.Service
                     // not expecting this
                     // to really happen,
                     // however everything is possible
-                    throw new Exception($"Failed to get wallet transfers");
+                    throw new Exception($"Failed to get wallet transfers" + response.Content);
                 }
             }
 
