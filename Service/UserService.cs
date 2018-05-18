@@ -143,8 +143,22 @@ namespace Tokenaire.Service
                 };
             }
 
-            var ipCheck = await this.tokenaireContext.Users.FirstOrDefaultAsync(user =>
-                user.RegisteredFromIP == model.RegisteredFromIP);
+            var ipRegisteredLessThanFiveMinutesAgo = await this.tokenaireContext.Users.FirstOrDefaultAsync(user =>
+                user.RegisteredFromIP == model.RegisteredFromIP &&
+                TokenaireContext.DateDiff("minute", user.RegisteredDate, DateTime.UtcNow) <= 5);
+
+            if (ipRegisteredLessThanFiveMinutesAgo != null) {
+                return new ServiceUserCreateResult()
+                {
+                    Errors = new List<ServiceGenericError>() {
+                        new ServiceGenericError()
+                        {
+                            Code = ServiceGenericErrorEnum.IpAlreadyRegisteredWait,
+                            Message = "IP registered already less than five minutes ago, please wait."
+                        }
+                    }
+                };
+            }
 
             var result = await this.userManager.CreateAsync(new DatabaseUser()
             {

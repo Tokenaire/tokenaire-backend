@@ -11,6 +11,7 @@ namespace Tokenaire.Service.Enums
         Unknown = 5,
         InvalidEmailOrPassword = 6,
         InvalidSignature = 7,
-        InvalidAddress = 8
+        InvalidAddress = 8,
+        IpAlreadyRegisteredWait = 9
     }
 }
