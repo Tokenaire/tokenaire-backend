@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Mail;
 using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
 using DnsClient;
 using Microsoft.AspNetCore.Identity;
@@ -28,7 +30,7 @@ namespace Tokenaire.Service
 
         Task<bool> IsEmailTaken(string email);
         Task<bool> SendEmailConfirmation(string email);
-
+        Task<bool> Verify(ServiceUserVerify serviceUserVerify);
     }
 
     public class UserService : IUserService
@@ -239,8 +241,22 @@ namespace Tokenaire.Service
                 };
             }
 
+            var user = await this.userManager.FindByEmailAsync(email);
+            var emailConfirmed = await this.userManager.IsEmailConfirmedAsync(user);
+            if (!emailConfirmed) {
+                return new ServiceUserLoginResult()
+                {
+                    Errors = new List<ServiceGenericError>() {
+                        new ServiceGenericError()
+                        {
+                            Code = ServiceGenericErrorEnum.EmailNeedsConfirming,
+                            Message = "Email needs confirming"
+                        }
+                    }
+                };
+            }
+
             var jwt = await this.jwtService.GenerateJwt(identity, email);
-            var user = await this.userManager.FindByNameAsync(email);
 
             return new ServiceUserLoginResult()
             {
@@ -253,7 +269,7 @@ namespace Tokenaire.Service
         }
 
         public async Task<bool> SendEmailConfirmation(string email) {
-                        // at this point,
+            // at this point,
             // user has been created successfully,
             // and there is not much left to do,
             // he however has to verify his email
@@ -272,11 +288,33 @@ namespace Tokenaire.Service
             return emailSentSuccessfully;
         }
 
+
+        public async Task<bool> Verify(ServiceUserVerify serviceUserVerify)
+        {
+            if (string.IsNullOrEmpty(serviceUserVerify.Email) || string.IsNullOrEmpty(serviceUserVerify.Code)) {
+                return false;
+            }
+
+            var decodedEmail = Encoding.UTF8.GetString(Base58.Decode(serviceUserVerify.Email));
+            var decodedCode = Encoding.UTF8.GetString(Base58.Decode(serviceUserVerify.Code));
+
+            var user = await this.userManager.FindByEmailAsync(decodedEmail);
+            if (user == null) {
+                return false;
+            }
+
+            var result = await this.userManager.ConfirmEmailAsync(user, decodedCode);
+            return result.Succeeded;
+        }
+
         private async Task<string> GenerateEmailVerificationCodeUrl(DatabaseUser user) {
             var code = await this.userManager.GenerateEmailConfirmationTokenAsync(user);
-            var callbackUrl = this.configuration.GetValue<string>("TokenaireApiUrl");
+            var callbackUrl = this.configuration.GetValue<string>("TokenairePlatformUrl");
 
-            return $"{callbackUrl}/api/user/verify?code={code}";
+            var encodedCode = Base58.Encode(Encoding.UTF8.GetBytes(code));
+            var encodedEmail = Base58.Encode(Encoding.UTF8.GetBytes(user.Email));
+
+            return $"{callbackUrl}/verify?code={encodedCode}&email={encodedEmail}";
         }
 
         private async Task<ClaimsIdentity> GetClaimsIdentity(string userName, string password)
@@ -287,7 +325,8 @@ namespace Tokenaire.Service
             var userToVerify = await this.userManager.FindByNameAsync(userName);
             if (userToVerify == null) return null;
 
-            if (await this.userManager.CheckPasswordAsync(userToVerify, password))
+            if (
+                await this.userManager.CheckPasswordAsync(userToVerify, password))
             {
                 return await jwtService.GenerateClaimsIdentity(userName, userToVerify.Id);
             }

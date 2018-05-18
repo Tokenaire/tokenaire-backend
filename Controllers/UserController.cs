@@ -73,6 +73,22 @@ namespace tokenaire_backend.Controllers
         }
 
         [AllowAnonymous]
+        [Route("verify")]
+        [HttpPost]
+        public async Task<IActionResult> Verify([FromBody]DtoUserVerify model)
+        {
+            var isVerified = await _userService.Verify(new ServiceUserVerify()
+            {
+                Email = model.Email,
+                Code = model.Code
+            });
+
+            return Ok(new DtoUserVerifyResult() {
+                IsVerified = isVerified
+            });
+        }
+
+        [AllowAnonymous]
         [Route("login")]
         [HttpPost]
         public async Task<IActionResult> Login([FromBody]DtoUserLogin model)
