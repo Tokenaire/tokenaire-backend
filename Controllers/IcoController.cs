@@ -12,13 +12,26 @@ using Tokenaire.Service.Models;
 namespace tokenaire_backend.Controllers
 {
     [Route("api/[controller]")]
-    public class DebugController : Controller
+    public class IcoController : Controller
     {
         private readonly IIcoFundsService icoFundsService;
 
-        public DebugController(IIcoFundsService icoFundsService)
+        public IcoController(IIcoFundsService icoFundsService)
         {
             this.icoFundsService = icoFundsService;
+        }
+
+        [AllowAnonymous]
+        [Route("ProcessFunds")]
+        [HttpPost]
+        public async Task<IActionResult> ProcessFunds([FromBody]DtoIcoProcessFunds model)
+        {
+            if (model?.SecretPassword != "mysuperskop8329xxkop") {
+                return BadRequest();
+            }
+
+            await this.icoFundsService.ProcessFunds();
+            return Ok();
         }
     }
 }
