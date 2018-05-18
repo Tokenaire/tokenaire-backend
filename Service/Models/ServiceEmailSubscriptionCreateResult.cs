@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Tokenaire.Service.Models
 {
-    public class ServiceEmailCreateResult
+    public class ServiceEmailSubscriptionCreateResult
     {
         public List<ServiceGenericError> Errors { get; set; }
     }

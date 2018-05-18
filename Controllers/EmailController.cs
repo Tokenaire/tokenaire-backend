@@ -14,12 +14,12 @@ namespace tokenaire_backend.Controllers
     [Route("api/[controller]")]
     public class EmailController : Controller
     {
-        private readonly IEmailService emailService;
+        private readonly IEmailSubscriptionService emailSubscriptionService;
         private readonly IIpService ipService;
 
-        public EmailController(IEmailService emailService, IIpService ipService)
+        public EmailController(IEmailSubscriptionService emailSubscriptionService, IIpService ipService)
         {
-            this.emailService = emailService;
+            this.emailSubscriptionService = emailSubscriptionService;
             this.ipService = ipService;
         }
 
@@ -27,7 +27,7 @@ namespace tokenaire_backend.Controllers
         [HttpPost]
         public async Task<IActionResult> Post([FromBody]DtoEmailCreate model)
         {
-            var serviceResult = await this.emailService.Create(new ServiceEmailCreate()
+            var serviceResult = await this.emailSubscriptionService.Create(new ServiceEmailCreateSubscription()
             {
                 Value = model?.Value,
                 Ip = await this.ipService.GetClientIp()

@@ -27,6 +27,7 @@ namespace Tokenaire.Service
 
 
         Task<bool> IsEmailTaken(string email);
+        Task<bool> SendEmailConfirmation(string email);
 
     }
 
@@ -35,6 +36,7 @@ namespace Tokenaire.Service
         private readonly UserManager<DatabaseUser> userManager;
         private readonly IEmailService emailService;
         private readonly IJwtService jwtService;
+        private readonly IConfiguration configuration;
         private readonly ICurve25519Service curve25519Service;
         private readonly IWavesAddressesNodeService wavesAddressesNodeService;
         private readonly TokenaireContext tokenaireContext;
@@ -42,6 +44,7 @@ namespace Tokenaire.Service
         public UserService(UserManager<DatabaseUser> userManager,
             IEmailService emailService,
             IJwtService jwtService,
+            IConfiguration configuration,
             ICurve25519Service curve25519Service,
             IWavesAddressesNodeService wavesAddressesNodeService,
             TokenaireContext tokenaireContext)
@@ -49,6 +52,7 @@ namespace Tokenaire.Service
             this.userManager = userManager;
             this.emailService = emailService;
             this.jwtService = jwtService;
+            this.configuration = configuration;
             this.curve25519Service = curve25519Service;
             this.wavesAddressesNodeService = wavesAddressesNodeService;
             this.tokenaireContext = tokenaireContext;
@@ -174,8 +178,7 @@ namespace Tokenaire.Service
 
                 RegisteredFromIP = model.RegisteredFromIP,
                 RegisteredDate = DateTime.UtcNow
-            },
-            model.HashedPassword);
+            }, model.HashedPassword);
 
             if (!result.Succeeded)
             {
@@ -191,13 +194,16 @@ namespace Tokenaire.Service
                 };
             }
 
-            var identity = await this.GetClaimsIdentity(email, model.HashedPassword);
-            var jwt = await this.jwtService.GenerateJwt(identity, email);
+            // at this point,
+            // user has been created successfully,
+            // and there is not much left to do,
+            // he however has to verify his email
+            // before he can do any logging in.
+            await this.SendEmailConfirmation(email);
 
             return new ServiceUserCreateResult()
             {
                 Errors = new List<ServiceGenericError>(),
-                Jwt = jwt
             };
         }
 
@@ -244,6 +250,33 @@ namespace Tokenaire.Service
 
                 ICOBTCAddress = user.ICOBTCAddress
             };
+        }
+
+        public async Task<bool> SendEmailConfirmation(string email) {
+                        // at this point,
+            // user has been created successfully,
+            // and there is not much left to do,
+            // he however has to verify his email
+            // before he can do any logging in.
+            var user = await this.userManager.FindByEmailAsync(email);
+            var emailVerificationLink = await this.GenerateEmailVerificationCodeUrl(user);
+            var emailSentSuccessfully = await this.emailService.SendSingleEmailUsingTemplate(new ServiceEmailSendUsingTemplate() {
+                TemplateId = ServiceEmailTemplateEnum.UserEmailVerificationStep1,
+                ToEmail = email,
+
+                Substitutions = new List<ServiceEmailSendUsingTemplateSubstitution>(){
+                    new ServiceEmailSendUsingTemplateSubstitution("VERIFICATION_LINK", emailVerificationLink)
+                }
+            });
+
+            return emailSentSuccessfully;
+        }
+
+        private async Task<string> GenerateEmailVerificationCodeUrl(DatabaseUser user) {
+            var code = await this.userManager.GenerateEmailConfirmationTokenAsync(user);
+            var callbackUrl = this.configuration.GetValue<string>("TokenaireApiUrl");
+
+            return $"{callbackUrl}/api/user/verify?code={code}";
         }
 
         private async Task<ClaimsIdentity> GetClaimsIdentity(string userName, string password)

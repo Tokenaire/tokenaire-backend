@@ -7,6 +7,5 @@ namespace Tokenaire.Service.Models
     public class ServiceUserCreateResult
     {
         public List<ServiceGenericError> Errors { get; set; }
-        public ServiceJwtToken Jwt { get; set; }
     }
 }

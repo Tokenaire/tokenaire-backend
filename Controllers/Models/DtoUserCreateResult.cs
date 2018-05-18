@@ -6,7 +6,5 @@ namespace Tokenaire.Controllers.Models
 {
     public class DtoUserCreateResult
     {
-        public string AuthToken { get; set; }
-        public string ICOBTCAddress { get; set; }
     }
 }

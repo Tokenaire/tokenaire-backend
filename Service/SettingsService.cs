@@ -28,6 +28,7 @@ namespace Tokenaire.Service
 
         string BitGoICOFundsApiKey { get; }
         string WavesNodeApiKey { get; }
+        string SendGridApiKey { get; }
         string LogglyBackendToken { get; }
 
         string WavesICOAireWalletPrivateKey { get; }
@@ -51,6 +52,11 @@ namespace Tokenaire.Service
         public string ChangellyApiSecret
         {
             get => this.EnvironmentVariable("ChangellyApiSecret", "TOKENAIRE_CHANGELLY_API_SECRET");
+        }
+
+        public string SendGridApiKey
+        {
+            get => this.EnvironmentVariable("SendGridApiKey", "TOKENAIRE_SENDGRID_API_KEY");
         }
 
         public string BitGoICOFundsApiKey

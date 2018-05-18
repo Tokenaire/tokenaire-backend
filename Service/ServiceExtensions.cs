@@ -32,11 +32,14 @@ namespace Tokenaire.Service
 
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IIcoFundsService, IcoFundsService>();
-            services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<IEmailSubscriptionService, EmailSubscriptionService>();
+
 
             services.AddSingleton<IJwtService, JwtService>();
             services.AddSingleton<IRestClient, RestClient>();
             services.AddSingleton<ICurve25519Service, Curve25519Service>();
+            services.AddSingleton<IEmailService, EmailService>();
+
 
             services.AddSingleton<IWavesRootNodeService, WavesRootNodeService>();
             services.AddSingleton<IWavesAddressesNodeService, WavesAddressesNodeService>();
@@ -114,6 +117,10 @@ namespace Tokenaire.Service
 
             services.Configure<IdentityOptions>(options =>
             {
+                // System requires confirmed email
+                // before we let him to log in successfully.
+                options.SignIn.RequireConfirmedEmail = true;
+
                 // Password settings
                 options.Password.RequireDigit = false;
                 options.Password.RequiredLength = 8;

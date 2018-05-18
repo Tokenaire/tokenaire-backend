@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
 using DnsClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SendGrid;
+using SendGrid.Helpers.Mail;
 using Tokenaire.Database;
 using Tokenaire.Database.Models;
 using Tokenaire.Service.Enums;
@@ -16,88 +19,52 @@ namespace Tokenaire.Service
 {
     public interface IEmailService
     {
-        Task<ServiceEmailCreateResult> Create(ServiceEmailCreate model);
-
         Task<bool> IsValid(string email);
+        Task<bool> SendSingleEmailUsingTemplate(ServiceEmailSendUsingTemplate model);
     }
 
     public class EmailService : IEmailService
     {
-        private readonly TokenaireContext tokenaireContext;
         private readonly ILookupClient lookupClient;
+        private readonly ISettingsService settingsService;
+        private readonly IConfiguration configuration;
 
-        public EmailService(TokenaireContext tokenaireContext, ILookupClient lookupClient)
+        private readonly Dictionary<ServiceEmailTemplateEnum, string> templateMap = new Dictionary<ServiceEmailTemplateEnum, string>(){
+            {ServiceEmailTemplateEnum.UserEmailVerificationStep1, "0752cef0-f918-4728-89d6-7968ebebb6d8"},
+            {ServiceEmailTemplateEnum.UserEmailRegistrationSucceededStep2, "d6029d3c-6994-489f-b1f6-6eee821aec81"}
+        };
+
+        public EmailService(
+            ILookupClient lookupClient,
+            ISettingsService settingsService,
+            IConfiguration configuration)
         {
-            this.tokenaireContext = tokenaireContext;
             this.lookupClient = lookupClient;
+            this.settingsService = settingsService;
+            this.configuration = configuration;
         }
 
-        public async Task<ServiceEmailCreateResult> Create(ServiceEmailCreate model)
+        public async Task<bool> SendSingleEmailUsingTemplate(ServiceEmailSendUsingTemplate model)
         {
-            var errors = new List<ServiceGenericError>();
-            var email = model?.Value?.ToLowerInvariant();
+            var client = new SendGridClient(settingsService.SendGridApiKey);
+            var fromEmailNormalized = model.FromEmail ?? "support@tokenaire.club";
+            var fromNameNormalized = model.FromName ?? "Tokenaire";
 
-// step1; validate that email actually is not null or empty
-            if (string.IsNullOrEmpty(email))
+            var msg = new SendGridMessage()
             {
-                errors.Add(new ServiceGenericError()
-                {
-                    Code = ServiceGenericErrorEnum.FieldEmpty,
-                    Message = "Email can't be empty"
-                });
-
-                return new ServiceEmailCreateResult()
-                {
-                    Errors = errors
-                };
-            }
-
-// step2; check if the email already exists,
-// if it does,
-// no big deal :)
-            var dbEmail = await this.tokenaireContext.Emails.FirstOrDefaultAsync(x => x.Value == email);
-            if (dbEmail != null)
-            {
-                errors.Add(new ServiceGenericError()
-                {
-                    Code = ServiceGenericErrorEnum.EmailNotUnique,
-                    Message = "Email is not unique"
-                });
-
-                return new ServiceEmailCreateResult()
-                {
-                    Errors = errors
-                };
-            }
-
-// step3; email has to be actually valid
-// and dns records should exist!
-            if (!await this.IsValid(email)) {
-                errors.Add(new ServiceGenericError()
-                {
-                    Code = ServiceGenericErrorEnum.BadEmail,
-                    Message = "Email is invalid"
-                });
-
-                return new ServiceEmailCreateResult()
-                {
-                    Errors = errors
-                };
-            }
-
-            this.tokenaireContext.Emails.Add(new DatabaseEmail()
-            {
-                Value = email,
-                Ip = model.Ip,
-                Date = DateTime.UtcNow
-            });
-
-            await this.tokenaireContext.SaveChangesAsync();
-
-            return new ServiceEmailCreateResult()
-            {
-                Errors = errors
+                From = new EmailAddress(fromEmailNormalized, fromNameNormalized),
+                TemplateId = this.templateMap[model.TemplateId],
             };
+
+            if (model.Substitutions != null) {
+                foreach (var sub in model.Substitutions) {
+                    msg.AddSubstitution($"%{sub.Key}%", sub.Value);
+                }
+            }
+
+            msg.AddTo(new EmailAddress(model.ToEmail));
+            var response = await client.SendEmailAsync(msg);
+            return response.StatusCode == HttpStatusCode.OK;
         }
 
         public async Task<bool> IsValid(string email)

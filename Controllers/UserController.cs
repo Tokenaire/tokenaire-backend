@@ -69,10 +69,7 @@ namespace tokenaire_backend.Controllers
                 return this.BadRequestFromErrors(serviceResult.Errors);
             }
 
-            return Ok(new DtoUserCreateResult() {
-                AuthToken = serviceResult.Jwt.AuthToken,
-                ICOBTCAddress = ICOBTCAddress
-            });
+            return Ok(new DtoUserCreateResult() {});
         }
 
         [AllowAnonymous]
