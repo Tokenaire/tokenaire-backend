@@ -34,7 +34,6 @@ namespace Tokenaire.Service
             services.AddScoped<IIcoFundsService, IcoFundsService>();
             services.AddScoped<IEmailService, EmailService>();
 
-
             services.AddSingleton<IJwtService, JwtService>();
             services.AddSingleton<IRestClient, RestClient>();
             services.AddSingleton<ICurve25519Service, Curve25519Service>();
@@ -56,6 +55,7 @@ namespace Tokenaire.Service
             });
 
             services.TryAddTransient<IHttpContextAccessor, HttpContextAccessor>();
+            services.TryAddTransient<IIpService, IpService>();
         }
 
         public static void AddAuthenticationCustom(this IServiceCollection services, IConfiguration configuration, ISettingsService settingsService)

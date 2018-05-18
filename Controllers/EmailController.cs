@@ -15,12 +15,12 @@ namespace tokenaire_backend.Controllers
     public class EmailController : Controller
     {
         private readonly IEmailService emailService;
-        private readonly IHttpContextAccessor accessor;
+        private readonly IIpService ipService;
 
-        public EmailController(IEmailService emailService, IHttpContextAccessor accessor)
+        public EmailController(IEmailService emailService, IIpService ipService)
         {
             this.emailService = emailService;
-            this.accessor = accessor;
+            this.ipService = ipService;
         }
 
         [AllowAnonymous]
@@ -30,7 +30,7 @@ namespace tokenaire_backend.Controllers
             var serviceResult = await this.emailService.Create(new ServiceEmailCreate()
             {
                 Value = model?.Value,
-                Ip = this.accessor.HttpContext.Connection.RemoteIpAddress.ToString()
+                Ip = await this.ipService.GetClientIp()
             });
 
             if (serviceResult.Errors.Count > 0) {

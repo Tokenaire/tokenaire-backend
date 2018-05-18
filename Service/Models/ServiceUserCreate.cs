@@ -17,6 +17,8 @@ namespace Tokenaire.Service.Models
         public string Signature { get; set; }
         public string ICOBTCAddress { get; set; }
 
+        public string RegisteredFromIP { get; set; }
+
         public List<ServiceGenericError> GetErrors()
         {
             var errors = new List<ServiceGenericError>();

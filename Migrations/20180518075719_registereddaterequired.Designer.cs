@@ -11,9 +11,10 @@ using Tokenaire.Database;
 namespace tokenairebackend.Migrations
 {
     [DbContext(typeof(TokenaireContext))]
-    partial class TokenaireContextModelSnapshot : ModelSnapshot
+    [Migration("20180518075719_registereddaterequired")]
+    partial class registereddaterequired
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

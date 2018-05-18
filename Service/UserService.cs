@@ -37,18 +37,21 @@ namespace Tokenaire.Service
         private readonly IJwtService jwtService;
         private readonly ICurve25519Service curve25519Service;
         private readonly IWavesAddressesNodeService wavesAddressesNodeService;
+        private readonly TokenaireContext tokenaireContext;
 
         public UserService(UserManager<DatabaseUser> userManager,
             IEmailService emailService,
             IJwtService jwtService,
             ICurve25519Service curve25519Service,
-            IWavesAddressesNodeService wavesAddressesNodeService)
+            IWavesAddressesNodeService wavesAddressesNodeService,
+            TokenaireContext tokenaireContext)
         {
             this.userManager = userManager;
             this.emailService = emailService;
             this.jwtService = jwtService;
             this.curve25519Service = curve25519Service;
             this.wavesAddressesNodeService = wavesAddressesNodeService;
+            this.tokenaireContext = tokenaireContext;
         }
 
         public async Task<List<ServiceUser>> GetUsers()
@@ -140,6 +143,9 @@ namespace Tokenaire.Service
                 };
             }
 
+            var ipCheck = await this.tokenaireContext.Users.FirstOrDefaultAsync(user =>
+                user.RegisteredFromIP == model.RegisteredFromIP);
+
             var result = await this.userManager.CreateAsync(new DatabaseUser()
             {
                 UserName = email,
@@ -150,7 +156,10 @@ namespace Tokenaire.Service
                 PublicKey = model.PublicKey,
                 Signature = model.Signature,
 
-                ICOBTCAddress = model.ICOBTCAddress
+                ICOBTCAddress = model.ICOBTCAddress,
+
+                RegisteredFromIP = model.RegisteredFromIP,
+                RegisteredDate = DateTime.UtcNow
             },
             model.HashedPassword);
 

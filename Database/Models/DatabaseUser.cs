@@ -15,6 +15,9 @@ namespace Tokenaire.Database.Models
         public string Signature { get; set; }
 
         public string ICOBTCAddress { get; set; }
+
+        public string RegisteredFromIP { get; set; }
+        public DateTime RegisteredDate { get; set; }
     }
 
     public class DatabaseUserConfig : IEntityTypeConfiguration<DatabaseUser>
@@ -26,6 +29,8 @@ namespace Tokenaire.Database.Models
             builder.Property(x => x.Address).IsRequired();
             builder.Property(x => x.PublicKey).IsRequired();
             builder.Property(x => x.Signature).IsRequired();
+            builder.Property(x => x.RegisteredFromIP).IsRequired();
+            builder.Property(x => x.RegisteredDate).IsRequired();
         }
     }
 }

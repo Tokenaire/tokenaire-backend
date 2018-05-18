@@ -19,11 +19,16 @@ namespace tokenaire_backend.Controllers
     {
         private readonly IUserService _userService;
         private readonly IIcoFundsService icoFundsService;
+        private readonly IIpService ipService;
 
-        public UserController(IUserService userService, IIcoFundsService icoFundsService)
+        public UserController(
+            IUserService userService,
+            IIcoFundsService icoFundsService,
+            IIpService ipService)
         {
             _userService = userService;
             this.icoFundsService = icoFundsService;
+            this.ipService = ipService;
         }
 
         [AllowAnonymous]
@@ -55,7 +60,8 @@ namespace tokenaire_backend.Controllers
                 PublicKey = model?.PublicKey,
                 Signature = model?.Signature,
 
-                ICOBTCAddress = ICOBTCAddress
+                ICOBTCAddress = ICOBTCAddress,
+                RegisteredFromIP = await this.ipService.GetClientIp()
             });
 
             if (serviceResult.Errors.Count > 0)
