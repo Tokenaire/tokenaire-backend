@@ -303,6 +303,10 @@ namespace Tokenaire.Service
                 return false;
             }
 
+            if (await this.userManager.IsEmailConfirmedAsync(user)) {
+                return true;
+            }
+
             var result = await this.userManager.ConfirmEmailAsync(user, decodedCode);
             return result.Succeeded;
         }
