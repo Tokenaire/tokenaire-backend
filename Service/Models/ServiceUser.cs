@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
+using Tokenaire.Database.Models;
 using Tokenaire.Service.Enums;
 
 namespace Tokenaire.Service.Models
@@ -12,5 +13,6 @@ namespace Tokenaire.Service.Models
         public string Address { get; set; }
 
         public string ICOBTCAddress { get; set; }
+        public string RegisteredFromReferralLinkId { get; internal set; }
     }
 }

@@ -22,15 +22,16 @@ namespace Tokenaire.Service
 {
     public interface IUserService
     {
+        Task<ServiceUser> GetUser(string userId);
         Task<List<ServiceUser>> GetUsers();
 
-        Task<ServiceUserCreateResult> Create(ServiceUserCreate model);
-        Task<ServiceUserLoginResult> Login(ServiceUserLogin model);
+        Task<ServiceUserCreateResult> CreateAsync(ServiceUserCreate model);
+        Task<ServiceUserLoginResult> LoginAsync(ServiceUserLogin model);
 
 
-        Task<bool> IsEmailTaken(string email);
-        Task<bool> SendEmailConfirmation(string email);
-        Task<bool> Verify(ServiceUserVerify serviceUserVerify);
+        Task<bool> IsEmailTakenAsync(string email);
+        Task<bool> SendEmailConfirmationAsync(string email);
+        Task<bool> VerifyAsync(ServiceUserVerify serviceUserVerify);
     }
 
     public class UserService : IUserService
@@ -41,6 +42,7 @@ namespace Tokenaire.Service
         private readonly IConfiguration configuration;
         private readonly ICurve25519Service curve25519Service;
         private readonly IWavesAddressesNodeService wavesAddressesNodeService;
+        private readonly IUserReferralLinkService userReferralLinkService;
         private readonly TokenaireContext tokenaireContext;
 
         public UserService(UserManager<DatabaseUser> userManager,
@@ -49,6 +51,7 @@ namespace Tokenaire.Service
             IConfiguration configuration,
             ICurve25519Service curve25519Service,
             IWavesAddressesNodeService wavesAddressesNodeService,
+            IUserReferralLinkService userReferralLinkService,
             TokenaireContext tokenaireContext)
         {
             this.userManager = userManager;
@@ -57,24 +60,44 @@ namespace Tokenaire.Service
             this.configuration = configuration;
             this.curve25519Service = curve25519Service;
             this.wavesAddressesNodeService = wavesAddressesNodeService;
+            this.userReferralLinkService = userReferralLinkService;
             this.tokenaireContext = tokenaireContext;
         }
 
         public async Task<List<ServiceUser>> GetUsers()
         {
-            var dbUsers = await this.userManager.Users.ToArrayAsync();
+            var dbUsers = await this.userManager.Users
+                .Include(u => u.RegistrationInfo)
+                .ToArrayAsync();
+
             return dbUsers.Select((dbUser) =>
             {
                 return new ServiceUser()
                 {
                     Id = dbUser.Id,
                     Address = dbUser.Address,
-                    ICOBTCAddress = dbUser.ICOBTCAddress
+                    ICOBTCAddress = dbUser.ICOBTCAddress,
+                    RegisteredFromReferralLinkId = dbUser.RegistrationInfo.RegisteredFromReferralLink?.Id
                 };
             }).ToList();
         }
 
-        public async Task<ServiceUserCreateResult> Create(ServiceUserCreate model)
+        public async Task<ServiceUser> GetUser(string userId)
+        {
+            var dbUser = await this.userManager.Users
+                .Include(u => u.RegistrationInfo)
+                .FirstAsync();
+
+            return new ServiceUser()
+            {
+                Id = dbUser.Id,
+                Address = dbUser.Address,
+                ICOBTCAddress = dbUser.ICOBTCAddress,
+                RegisteredFromReferralLinkId = dbUser.RegistrationInfo.RegisteredFromReferralLink?.Id
+            };
+        }
+
+        public async Task<ServiceUserCreateResult> CreateAsync(ServiceUserCreate model)
         {
             var modelErrors = model.GetErrors();
             if (modelErrors.Count > 0)
@@ -149,11 +172,12 @@ namespace Tokenaire.Service
                 };
             }
 
-            var ipRegisteredLessThanFiveMinutesAgo = await this.tokenaireContext.Users.FirstOrDefaultAsync(user =>
-                user.RegisteredFromIP == model.RegisteredFromIP &&
-                TokenaireContext.DateDiff("minute", user.RegisteredDate, DateTime.UtcNow) <= 5);
+            var ipRegisteredLessThanFiveMinutesAgo = await this.tokenaireContext.Users.FirstOrDefaultAsync(u =>
+                u.RegisteredFromIP == model.RegisteredFromIP &&
+                TokenaireContext.DateDiff("minute", u.RegisteredDate, DateTime.UtcNow) <= 5);
 
-            if (ipRegisteredLessThanFiveMinutesAgo != null) {
+            if (ipRegisteredLessThanFiveMinutesAgo != null)
+            {
                 return new ServiceUserCreateResult()
                 {
                     Errors = new List<ServiceGenericError>() {
@@ -166,8 +190,21 @@ namespace Tokenaire.Service
                 };
             }
 
-            var result = await this.userManager.CreateAsync(new DatabaseUser()
+            var userId = Guid.NewGuid().ToString();
+            var userRegistrationInfo = new DatabaseUserRegistrationInfo()
             {
+                UserId = userId
+            };
+
+            if (await this.userReferralLinkService.IsValidReferralLinkAsync(model.RegisteredFromReferralLinkId))
+            {
+                userRegistrationInfo.RegisteredFromReferralLinkId = model.RegisteredFromReferralLinkId;
+            }
+
+            var user = new DatabaseUser()
+            {
+                Id = userId,
+
                 UserName = email,
                 Email = email,
                 EncryptedSeed = model.EncryptedSeed,
@@ -177,11 +214,21 @@ namespace Tokenaire.Service
                 Signature = model.Signature,
 
                 ICOBTCAddress = model.ICOBTCAddress,
+                UserBTCAddress = model.UserBTCAddress,
 
                 RegisteredFromIP = model.RegisteredFromIP,
-                RegisteredDate = DateTime.UtcNow
-            }, model.HashedPassword);
+                RegisteredDate = DateTime.UtcNow,
 
+                RegistrationInfo = userRegistrationInfo,
+                ReferralLinks = new List<DatabaseUserReferralLink>() {
+                    new DatabaseUserReferralLink() {
+                        UserId = userId,
+                        Type = DatabaseUserReferralLinkType.ICO
+                    }
+                }
+            };
+
+            var result = await this.userManager.CreateAsync(user, model.HashedPassword);
             if (!result.Succeeded)
             {
                 return new ServiceUserCreateResult()
@@ -196,25 +243,19 @@ namespace Tokenaire.Service
                 };
             }
 
-            // at this point,
-            // user has been created successfully,
-            // and there is not much left to do,
-            // he however has to verify his email
-            // before he can do any logging in.
-            await this.SendEmailConfirmation(email);
-
+            await this.SendEmailConfirmationAsync(email);
             return new ServiceUserCreateResult()
             {
                 Errors = new List<ServiceGenericError>(),
             };
         }
 
-        public async Task<bool> IsEmailTaken(string email)
+        public async Task<bool> IsEmailTakenAsync(string email)
         {
             return await this.userManager.FindByEmailAsync(email) != null;
         }
 
-        public async Task<ServiceUserLoginResult> Login(ServiceUserLogin model)
+        public async Task<ServiceUserLoginResult> LoginAsync(ServiceUserLogin model)
         {
             var modelErrors = model.GetErrors();
             if (modelErrors.Count > 0)
@@ -226,7 +267,7 @@ namespace Tokenaire.Service
             }
 
             var email = model.Email?.ToLowerInvariant();
-            var identity = await this.GetClaimsIdentity(email, model.HashedPassword);
+            var identity = await this.GetClaimsIdentityAsync(email, model.HashedPassword);
             if (identity == null)
             {
                 return new ServiceUserLoginResult()
@@ -243,7 +284,9 @@ namespace Tokenaire.Service
 
             var user = await this.userManager.FindByEmailAsync(email);
             var emailConfirmed = await this.userManager.IsEmailConfirmedAsync(user);
-            if (!emailConfirmed) {
+            var isFirstTimeLogging = user.LastLoginDate == null;
+            if (!emailConfirmed)
+            {
                 return new ServiceUserLoginResult()
                 {
                     Errors = new List<ServiceGenericError>() {
@@ -256,6 +299,9 @@ namespace Tokenaire.Service
                 };
             }
 
+            user.LastLoginDate = DateTime.UtcNow;
+            await this.tokenaireContext.SaveChangesAsync();
+
             var jwt = await this.jwtService.GenerateJwt(identity, email);
 
             return new ServiceUserLoginResult()
@@ -264,19 +310,21 @@ namespace Tokenaire.Service
                 EncryptedSeed = user.EncryptedSeed,
                 Jwt = jwt,
 
-                ICOBTCAddress = user.ICOBTCAddress
+                IsFirstTimeLogging = isFirstTimeLogging
             };
         }
 
-        public async Task<bool> SendEmailConfirmation(string email) {
+        public async Task<bool> SendEmailConfirmationAsync(string email)
+        {
             // at this point,
             // user has been created successfully,
             // and there is not much left to do,
             // he however has to verify his email
             // before he can do any logging in.
             var user = await this.userManager.FindByEmailAsync(email);
-            var emailVerificationLink = await this.GenerateEmailVerificationCodeUrl(user);
-            var emailSentSuccessfully = await this.emailService.SendSingleEmailUsingTemplate(new ServiceEmailSendUsingTemplate() {
+            var emailVerificationLink = await this.GenerateEmailVerificationCodeUrlAsync(user);
+            var emailSentSuccessfully = await this.emailService.SendSingleEmailUsingTemplate(new ServiceEmailSendUsingTemplate()
+            {
                 TemplateId = ServiceEmailTemplateEnum.UserEmailVerificationStep1,
                 ToEmail = email,
 
@@ -289,9 +337,10 @@ namespace Tokenaire.Service
         }
 
 
-        public async Task<bool> Verify(ServiceUserVerify serviceUserVerify)
+        public async Task<bool> VerifyAsync(ServiceUserVerify serviceUserVerify)
         {
-            if (string.IsNullOrEmpty(serviceUserVerify.Email) || string.IsNullOrEmpty(serviceUserVerify.Code)) {
+            if (string.IsNullOrEmpty(serviceUserVerify.Email) || string.IsNullOrEmpty(serviceUserVerify.Code))
+            {
                 return false;
             }
 
@@ -299,11 +348,13 @@ namespace Tokenaire.Service
             var decodedCode = Encoding.UTF8.GetString(Base58.Decode(serviceUserVerify.Code));
 
             var user = await this.userManager.FindByEmailAsync(decodedEmail);
-            if (user == null) {
+            if (user == null)
+            {
                 return false;
             }
 
-            if (await this.userManager.IsEmailConfirmedAsync(user)) {
+            if (await this.userManager.IsEmailConfirmedAsync(user))
+            {
                 return true;
             }
 
@@ -311,7 +362,8 @@ namespace Tokenaire.Service
             return result.Succeeded;
         }
 
-        private async Task<string> GenerateEmailVerificationCodeUrl(DatabaseUser user) {
+        private async Task<string> GenerateEmailVerificationCodeUrlAsync(DatabaseUser user)
+        {
             var code = await this.userManager.GenerateEmailConfirmationTokenAsync(user);
             var callbackUrl = this.configuration.GetValue<string>("TokenairePlatformUrl");
 
@@ -321,7 +373,7 @@ namespace Tokenaire.Service
             return $"{callbackUrl}/verify?code={encodedCode}&email={encodedEmail}";
         }
 
-        private async Task<ClaimsIdentity> GetClaimsIdentity(string userName, string password)
+        private async Task<ClaimsIdentity> GetClaimsIdentityAsync(string userName, string password)
         {
             if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password))
                 return null;

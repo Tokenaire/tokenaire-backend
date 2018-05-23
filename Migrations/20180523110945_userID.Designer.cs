@@ -13,9 +13,10 @@ using Tokenaire.Database.Models;
 namespace tokenairebackend.Migrations
 {
     [DbContext(typeof(TokenaireContext))]
-    partial class TokenaireContextModelSnapshot : ModelSnapshot
+    [Migration("20180523110945_userID")]
+    partial class userID
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -97,8 +98,7 @@ namespace tokenairebackend.Migrations
                     b.Property<string>("EncryptedSeed")
                         .IsRequired();
 
-                    b.Property<string>("ICOBTCAddress")
-                        .IsRequired();
+                    b.Property<string>("ICOBTCAddress");
 
                     b.Property<DateTime?>("LastLoginDate");
 
@@ -132,9 +132,6 @@ namespace tokenairebackend.Migrations
                         .IsRequired();
 
                     b.Property<bool>("TwoFactorEnabled");
-
-                    b.Property<string>("UserBTCAddress")
-                        .IsRequired();
 
                     b.Property<string>("UserName");
 

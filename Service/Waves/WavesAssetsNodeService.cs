@@ -19,6 +19,7 @@ namespace Tokenaire.Service
 {
     public interface IWavesAssetsNodeService
     {
+        Task<long?> GetBalance(string wavesAddress, string assetId);
         Task<ServiceWavesAssetsNodeTransferResponse> Transfer(ServiceWavesAssetsNodeTransfer transferModel);
     }
 
@@ -30,6 +31,22 @@ namespace Tokenaire.Service
         public WavesAssetsNodeService(IServiceProvider serviceProvider)
        {
             this.serviceProvider = serviceProvider;
+        }
+
+        public async Task<long?> GetBalance(string wavesAddress, string assetId) {
+            var restSharp = this.serviceProvider.GetService<IWavesNodeRestClientService>();
+            var restRequest = new RestRequest(Method.GET);
+            restRequest.Resource = $"{this._prefix}/balance/{wavesAddress}/{assetId}";
+
+            var response = await restSharp.ExecuteAsync(restRequest);
+            long? balance = null;
+
+            if (response.StatusCode == HttpStatusCode.OK) {
+                dynamic content = JsonConvert.DeserializeObject(response.Content);
+                balance = content.balance;
+            }
+
+            return balance;
         }
 
         public async Task<ServiceWavesAssetsNodeTransferResponse> Transfer(ServiceWavesAssetsNodeTransfer transferModel) {

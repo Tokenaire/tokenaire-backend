@@ -4,18 +4,19 @@ using System.Collections.Generic;
 
 namespace tokenairebackend.Migrations
 {
-    public partial class registereddaterequired : Migration
+    public partial class newfields : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<DateTime>(
-                name: "RegisteredDate",
+            migrationBuilder.AlterColumn<string>(
+                name: "ICOBTCAddress",
                 table: "Users",
                 nullable: false,
-                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
+                oldClrType: typeof(string),
+                oldNullable: true);
 
             migrationBuilder.AddColumn<string>(
-                name: "RegisteredFromIP",
+                name: "UserBTCAddress",
                 table: "Users",
                 nullable: false,
                 defaultValue: "");
@@ -24,12 +25,14 @@ namespace tokenairebackend.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "RegisteredDate",
+                name: "UserBTCAddress",
                 table: "Users");
 
-            migrationBuilder.DropColumn(
-                name: "RegisteredFromIP",
-                table: "Users");
+            migrationBuilder.AlterColumn<string>(
+                name: "ICOBTCAddress",
+                table: "Users",
+                nullable: true,
+                oldClrType: typeof(string));
         }
     }
 }

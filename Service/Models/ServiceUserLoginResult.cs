@@ -9,6 +9,6 @@ namespace Tokenaire.Service.Models
         public List<ServiceGenericError> Errors { get; set; }
         public ServiceJwtToken Jwt { get; set; }
         public string EncryptedSeed { get; set; }
-        public string ICOBTCAddress { get; set; }
+        public bool IsFirstTimeLogging { get; internal set; }
     }
 }

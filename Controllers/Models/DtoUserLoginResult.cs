@@ -8,6 +8,6 @@ namespace Tokenaire.Controllers.Models
     {
         public string AuthToken { get; set; }
         public string EncryptedSeed { get; set; }
-        public string ICOBTCAddress { get; set; }
+        public bool IsFirstTimeLogging { get; set; }
     }
 }

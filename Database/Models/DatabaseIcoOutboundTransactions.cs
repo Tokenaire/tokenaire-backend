@@ -9,12 +9,22 @@ namespace Tokenaire.Database.Models
     {
         public int Id { get; set; }
 
+        public string UserId { get;  set; }
+        public DatabaseUser user { get; set; }
+
         public string TxIdSource { get; set; }
 
         public string AddressSource { get; set; }
 
         public bool? IsSuccessful { get; set; }
         public string Content { get; set; }
+
+        public long ValueReceivedInSatoshies { get;  set; }
+        public long ValueSentInAIRE { get; set; }
+        public long Rate { get;  set; }
+
+        public string RegisteredFromReferralLinkId { get; set; }
+        public DatabaseUserReferralLink RegisteredFromReferralLink { get; set; }
     }
 
     public class DatabaseICOOutboundAIRETransactionConfig : IEntityTypeConfiguration<DatabaseIcOOutboundAIRETransaction>
@@ -22,6 +32,7 @@ namespace Tokenaire.Database.Models
         public void Configure(EntityTypeBuilder<DatabaseIcOOutboundAIRETransaction> builder)
         {
             builder.HasKey(x => x.Id);
+            builder.Property(x => x.UserId).IsRequired();
             builder.HasIndex(i => new { i.TxIdSource, i.AddressSource }).IsUnique();
         }
     }

@@ -19,15 +19,18 @@ namespace tokenaire_backend.Controllers
     {
         private readonly IUserService _userService;
         private readonly IIcoFundsService icoFundsService;
+        private readonly IWavesCoinomatService wavesCoinomatService;
         private readonly IIpService ipService;
 
         public UserController(
             IUserService userService,
             IIcoFundsService icoFundsService,
+            IWavesCoinomatService wavesCoinomatService,
             IIpService ipService)
         {
             _userService = userService;
             this.icoFundsService = icoFundsService;
+            this.wavesCoinomatService = wavesCoinomatService;
             this.ipService = ipService;
         }
 
@@ -39,7 +42,7 @@ namespace tokenaire_backend.Controllers
                 return BadRequest();
             }
 
-            var isEmailTaken = await this._userService.IsEmailTaken(email);
+            var isEmailTaken = await this._userService.IsEmailTakenAsync(email);
 
             return Ok(isEmailTaken);
         }
@@ -50,7 +53,8 @@ namespace tokenaire_backend.Controllers
         public async Task<IActionResult> Create([FromBody]DtoUserCreate model)
         {
             var ICOBTCAddress = await this.icoFundsService.GenerateICOBtcAddressForUser(model?.Email);
-            var serviceResult = await _userService.Create(new ServiceUserCreate()
+            var userBTCAddress = await this.wavesCoinomatService.GenerateBTCAddressFromWavesAddress(model?.Address);
+            var serviceResult = await _userService.CreateAsync(new ServiceUserCreate()
             {
                 Email = model?.Email,
                 HashedPassword = model?.HashedPassword,
@@ -61,7 +65,10 @@ namespace tokenaire_backend.Controllers
                 Signature = model?.Signature,
 
                 ICOBTCAddress = ICOBTCAddress,
-                RegisteredFromIP = await this.ipService.GetClientIp()
+                UserBTCAddress = userBTCAddress,
+
+                RegisteredFromIP = await this.ipService.GetClientIp(),
+                RegisteredFromReferralLinkId = model.RegisteredFromReferralLinkId,
             });
 
             if (serviceResult.Errors.Count > 0)
@@ -77,7 +84,7 @@ namespace tokenaire_backend.Controllers
         [HttpPost]
         public async Task<IActionResult> Verify([FromBody]DtoUserVerify model)
         {
-            var isVerified = await _userService.Verify(new ServiceUserVerify()
+            var isVerified = await _userService.VerifyAsync(new ServiceUserVerify()
             {
                 Email = model.Email,
                 Code = model.Code
@@ -93,7 +100,7 @@ namespace tokenaire_backend.Controllers
         [HttpPost]
         public async Task<IActionResult> Login([FromBody]DtoUserLogin model)
         {
-            var serviceResult = await _userService.Login(new ServiceUserLogin()
+            var serviceResult = await _userService.LoginAsync(new ServiceUserLogin()
             {
                 Email = model?.Email,
                 HashedPassword = model?.HashedPassword,
@@ -107,7 +114,7 @@ namespace tokenaire_backend.Controllers
             return Ok(new DtoUserLoginResult() {
                 AuthToken = serviceResult.Jwt.AuthToken,
                 EncryptedSeed = serviceResult.EncryptedSeed,
-                ICOBTCAddress = serviceResult.ICOBTCAddress
+                IsFirstTimeLogging = serviceResult.IsFirstTimeLogging
             });
         }
     }

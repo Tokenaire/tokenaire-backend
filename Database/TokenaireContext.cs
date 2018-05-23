@@ -14,6 +14,9 @@ namespace Tokenaire.Database
     {
         public DbSet<DatabaseEmail> Emails { get; set; }
         public DbSet<DatabaseUser> Users { get; set; }
+        public DbSet<DatabaseUserReferralLink> UserReferralLinks { get; set; }
+        public DbSet<DatabaseUserRegistrationInfo> UserRegistrationInfos { get; set; }
+
         public DbSet<DatabaseIcOOutboundAIRETransaction> ICOOutboundAIRETransactions { get; set; }
 
         public TokenaireContext(DbContextOptions<TokenaireContext> options) : base(options)
@@ -31,6 +34,8 @@ namespace Tokenaire.Database
         {
             modelBuilder.ApplyConfiguration(new DatabaseEmailConfig());
             modelBuilder.ApplyConfiguration(new DatabaseUserConfig());
+            modelBuilder.ApplyConfiguration(new DatabaseUserReferralLinkConfig());
+            modelBuilder.ApplyConfiguration(new DatabaseUserRegistrationInfoConfig());
             modelBuilder.ApplyConfiguration(new DatabaseICOOutboundAIRETransactionConfig());
 
 
@@ -54,12 +59,27 @@ namespace Tokenaire.Database
                             diffArgs);
                     }
                 );
+
+            this.DisableCascadingGlobally(modelBuilder);
+            base.OnModelCreating(modelBuilder);
         }
+
+
 
         [DbFunction]
         public static int DateDiff(string datepart, DateTime startdate, DateTime enddate)
         {
             throw new Exception();
+        }
+
+        private void DisableCascadingGlobally(ModelBuilder modelBuilder)
+        {
+            var cascadeFKs = modelBuilder.Model.GetEntityTypes()
+                .SelectMany(t => t.GetForeignKeys())
+                .Where(fk => !fk.IsOwnership && fk.DeleteBehavior == DeleteBehavior.Cascade);
+
+            foreach (var fk in cascadeFKs)
+                fk.DeleteBehavior = DeleteBehavior.Restrict;
         }
     }
 }

@@ -26,13 +26,15 @@ namespace Tokenaire.Service
         {
             services.AddMemoryCache();
             services.Configure<IpRateLimitOptions>(configuration.GetSection("IpRateLimiting"));
-	        services.Configure<IpRateLimitPolicies>(configuration.GetSection("IpRateLimitPolicies"));
+            services.Configure<IpRateLimitPolicies>(configuration.GetSection("IpRateLimitPolicies"));
             services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
-	        services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+            services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
 
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IIcoFundsService, IcoFundsService>();
             services.AddScoped<IEmailSubscriptionService, EmailSubscriptionService>();
+            services.AddScoped<IUserReferralLinkService, UserReferralLinkService>();
+
 
 
             services.AddSingleton<IJwtService, JwtService>();
@@ -51,6 +53,8 @@ namespace Tokenaire.Service
             services.AddSingleton<IChangellyService, ChangellyService>();
             services.AddSingleton<IBitcoinService, BitcoinService>();
             services.AddSingleton<IBitGoService, BitGoService>();
+            services.AddSingleton<IWavesCoinomatService, WavesCoinomatService>();
+
 
             services.AddSingleton<ILookupClient, LookupClient>((x) => new LookupClient()
             {
