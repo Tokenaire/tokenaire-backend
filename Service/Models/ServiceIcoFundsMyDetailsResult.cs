@@ -9,10 +9,12 @@ namespace Tokenaire.Service.Models
     {
         public string ICOBTCAddress { get; set; }
         public string ReferralLinkUrl { get; set; }
+        public long ReferralLinkRaisedBtcSatoshies { get; set; }
+        public long ReferralLinkEligibleBtcSatoshies { get; set; }
+        public long ICOBTCInvestedSatoshies { get; set; }
 
-        public long ReferralLinkRaisedBtc { get; set; }
-        public long ReferralLinkEligibleBtc { get; set; }
 
-        public long ICOBTCInvested { get; set; }
+        public int ReferralLinkRate { get; set; }
+        public long OneAireInSatoshies { get; set; }
     }
 }

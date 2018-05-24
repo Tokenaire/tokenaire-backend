@@ -19,9 +19,11 @@ namespace Tokenaire.Database.Models
         public bool? IsSuccessful { get; set; }
         public string Content { get; set; }
 
+        public bool IsProcessed { get; set; }
+
         public long ValueReceivedInSatoshies { get;  set; }
         public long ValueSentInAIRE { get; set; }
-        public long Rate { get;  set; }
+        public long OneAirePriceInSatoshies { get;  set; }
 
         public string RegisteredFromReferralLinkId { get; set; }
         public DatabaseUserReferralLink RegisteredFromReferralLink { get; set; }

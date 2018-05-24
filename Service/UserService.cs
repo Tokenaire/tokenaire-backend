@@ -86,6 +86,7 @@ namespace Tokenaire.Service
         {
             var dbUser = await this.userManager.Users
                 .Include(u => u.RegistrationInfo)
+                .Where(x => x.Id == userId)
                 .FirstAsync();
 
             return new ServiceUser()

@@ -13,9 +13,10 @@ using Tokenaire.Database.Models;
 namespace tokenairebackend.Migrations
 {
     [DbContext(typeof(TokenaireContext))]
-    partial class TokenaireContextModelSnapshot : ModelSnapshot
+    [Migration("20180524181338_renaming")]
+    partial class renaming
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,8 +51,6 @@ namespace tokenairebackend.Migrations
                     b.Property<string>("AddressSource");
 
                     b.Property<string>("Content");
-
-                    b.Property<bool>("IsProcessed");
 
                     b.Property<bool?>("IsSuccessful");
 

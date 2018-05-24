@@ -19,17 +19,20 @@ namespace tokenaire_backend.Controllers
         private readonly IIcoFundsService icoFundsService;
         private readonly IUserReferralLinkService userReferralLinkService;
         private readonly IUserService userService;
+        private readonly IMathService mathService;
         private readonly IConfiguration configuration;
 
         public IcoController(
             IIcoFundsService icoFundsService,
             IUserReferralLinkService userReferralLinkService,
             IUserService userService,
+            IMathService mathService,
             IConfiguration configuration)
         {
             this.icoFundsService = icoFundsService;
             this.userReferralLinkService = userReferralLinkService;
             this.userService = userService;
+            this.mathService = mathService;
             this.configuration = configuration;
         }
 
@@ -39,28 +42,35 @@ namespace tokenaire_backend.Controllers
         {
             var platformUrl = this.configuration.GetValue<string>("TokenairePlatformUrl");
             var icoDetails = await this.icoFundsService.GetMyICODetails(User.GetUserId());
-            var AIREBalance = await this.icoFundsService.GetAIREBalance();
+            var AIREBalance = await this.icoFundsService.GetAIREWalletBalance();
 
             var showIcoBTCAddress = AIREBalance != null && AIREBalance > 10000000;
 
             return Ok(new DtoIcoMyDetailsResult() {
                 ICOBTCAddress = showIcoBTCAddress ? icoDetails.ICOBTCAddress : null,
-                ICOBTCInvested = icoDetails.ICOBTCInvested,
+                ICOBTCInvested =  this.mathService.ConvertSatoshiesToBTCFormatted(icoDetails.ICOBTCInvestedSatoshies),
                 ReferralLinkUrl = icoDetails.ReferralLinkUrl,
-                ReferralLinkRaisedBtc = icoDetails.ReferralLinkRaisedBtc,
-                ReferralLinkEligibleBtc = icoDetails.ReferralLinkEligibleBtc,
+                ReferralLinkRaisedBtc = this.mathService.ConvertSatoshiesToBTCFormatted(icoDetails.ReferralLinkRaisedBtcSatoshies),
+                ReferralLinkEligibleBtc = this.mathService.ConvertSatoshiesToBTCFormatted(icoDetails.ReferralLinkEligibleBtcSatoshies),
 
-                AireBalance = AIREBalance
+                OneAireInSatoshies = icoDetails.OneAireInSatoshies
             });
         }
 
         [AllowAnonymous]
-        [Route("Balance")]
+        [Route("Info")]
         [HttpGet]
-        public async Task<IActionResult> GetAIREBalance()
+        public async Task<IActionResult> GetInfo()
         {
+            var tokensSold = await this.icoFundsService.GetAIRESold();
+            var tokensAvailable = await this.icoFundsService.GetAIRELeft();
+            var tokenSaleSupply = tokensSold + tokensAvailable;
+
             return Ok(new {
-                Balance = await this.icoFundsService.GetAIREBalance()
+                TokensSold = tokensSold,
+                TokensAvailable = tokensAvailable,
+                TokenSaleSupply = tokenSaleSupply,
+                TokensSoldPercentage = tokensSold * 100 / tokenSaleSupply
             });
         }
 

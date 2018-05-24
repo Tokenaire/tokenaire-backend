@@ -31,7 +31,10 @@ namespace Tokenaire.Service
     {
         Task<string> GenerateICOBtcAddressForUser(string email);
         Task<bool> ProcessFunds();
-        Task<long?> GetAIREBalance();
+        Task<long?> GetAIREWalletBalance();
+
+        Task<long> GetAIRELeft();
+        Task<long> GetAIRESold();
 
         Task<ServiceIcoFundsMyDetailsResult> GetMyICODetails(string userId);
     }
@@ -44,14 +47,17 @@ namespace Tokenaire.Service
         private readonly IUserReferralLinkService userReferralLinkService;
         private readonly IBitGoService bitGoService;
         private readonly IMemoryCache memoryCache;
+        private readonly IMathService mathService;
         private readonly IUserService userService;
         private readonly ISettingsService settingsService;
         private readonly IWavesAssetsNodeService wavesAssetsNodeService;
 
-        private readonly long oneAireInSatoshies = 80;
-        private readonly long oneBTCInSatoshies = 100000000;
-
+        private readonly int referralLinkMinimumRaisedBtc = 1;
         private readonly int referralLinkRateInPercentage = 5;
+
+        private readonly long aireTokenSaleSupply = 4200000000;
+
+        private readonly bool canSendAIRETokens = false;
 
         public IcoFundsService(
             IConfiguration configuration,
@@ -59,6 +65,7 @@ namespace Tokenaire.Service
             IUserReferralLinkService userReferralLinkService,
             IBitGoService bitGoService,
             IMemoryCache memoryCache,
+            IMathService mathService,
             IUserService userService,
             ISettingsService settingsService,
             IWavesAssetsNodeService wavesAssetsNodeService)
@@ -69,12 +76,24 @@ namespace Tokenaire.Service
             this.userReferralLinkService = userReferralLinkService;
             this.bitGoService = bitGoService;
             this.memoryCache = memoryCache;
+            this.mathService = mathService;
             this.userService = userService;
             this.settingsService = settingsService;
             this.wavesAssetsNodeService = wavesAssetsNodeService;
         }
 
-        public async Task<long?> GetAIREBalance()
+        public async Task<long> GetAIRESold()
+        {
+            return await this.tokenaireContext.ICOOutboundAIRETransactions
+                .Select(x => x.ValueSentInAIRE)
+                .SumAsync();
+        }
+
+        public async Task<long> GetAIRELeft() {
+            return this.aireTokenSaleSupply - await this.GetAIRESold();
+        }
+
+        public async Task<long?> GetAIREWalletBalance()
         {
             var cacheKey = "AIREBALANCE";
             var assetId = this.configuration.GetValue<string>("AIRETokenAssetId");
@@ -84,14 +103,16 @@ namespace Tokenaire.Service
             // we will just return that.
 
             string cachedAIREBalance = null;
-            if (this.memoryCache.TryGetValue(cacheKey, out cachedAIREBalance)) {
-                return cachedAIREBalance != null ? long.Parse(cachedAIREBalance) : (long?) null;
+            if (this.memoryCache.TryGetValue(cacheKey, out cachedAIREBalance))
+            {
+                return cachedAIREBalance != null ? long.Parse(cachedAIREBalance) : (long?)null;
             }
 
             // if not,
             // we'll just have to query the aire balance ourselves from waves api!
             var AIREBalance = await this.wavesAssetsNodeService.GetBalance(wavesAddress, assetId);
-            this.memoryCache.Set<string>(cacheKey, AIREBalance?.ToString(), new MemoryCacheEntryOptions(){
+            this.memoryCache.Set<string>(cacheKey, AIREBalance?.ToString(), new MemoryCacheEntryOptions()
+            {
                 AbsoluteExpiration = DateTime.Now.AddMinutes(10),
                 Priority = CacheItemPriority.Normal
             });
@@ -142,17 +163,6 @@ namespace Tokenaire.Service
                         continue;
                     }
 
-                    var icoOutboundTransaction = icoOutboundTransactions.FirstOrDefault((t) =>
-                        t.TxIdSource.ToLower() == receivedTransfer.TxId.ToLower() &&
-                        t.AddressSource.ToLower() == transferEntry.Address.ToLower());
-
-                    // we have already processed
-                    // the transfer entry.
-                    if (icoOutboundTransaction != null)
-                    {
-                        continue;
-                    }
-
                     var user = allUsers.FirstOrDefault(u =>
                         u.ICOBTCAddress != null &&
                         u.ICOBTCAddress.ToLower() == transferEntry.Address.ToLower());
@@ -164,8 +174,20 @@ namespace Tokenaire.Service
                         continue;
                     }
 
-                    // time to actually process the transfer entry.
-                    await this.ProcessTransferEntry(user, receivedTransfer, transferEntry);
+                    var icoOutboundTransaction = icoOutboundTransactions.FirstOrDefault((t) =>
+                        t.TxIdSource.ToLower() == receivedTransfer.TxId.ToLower() &&
+                        t.AddressSource.ToLower() == transferEntry.Address.ToLower());
+
+                    if (icoOutboundTransaction != null)
+                    {
+                        await this.ProcessExistingTransferEntry(user, receivedTransfer, transferEntry, icoOutboundTransaction);
+                        continue;
+                    }
+
+                    if (icoOutboundTransaction == null)
+                    {
+                        await this.ProcessNewTransferEntry(user, receivedTransfer, transferEntry);
+                    }
                 }
             }
 
@@ -184,8 +206,29 @@ namespace Tokenaire.Service
 
         public async Task<ServiceIcoFundsMyDetailsResult> GetMyICODetails(string userId)
         {
-            var platformUrl = this.configuration.GetValue<string>("TokenairePlatformUrl");
             var user = await this.userService.GetUser(userId);
+            var referralLinkDetails = await this.GetReferralLinkDetails(userId);
+            var ICOBTCInvestedSatoshies = await this.tokenaireContext.ICOOutboundAIRETransactions
+                .Where(x => x.UserId == userId)
+                .Select(x => x.ValueReceivedInSatoshies)
+                .SumAsync();
+
+            return new ServiceIcoFundsMyDetailsResult()
+            {
+                ICOBTCAddress = user.ICOBTCAddress,
+                ICOBTCInvestedSatoshies = ICOBTCInvestedSatoshies,
+                ReferralLinkUrl = referralLinkDetails.ReferralLinkUrl,
+                ReferralLinkRate = this.referralLinkRateInPercentage,
+                ReferralLinkRaisedBtcSatoshies = referralLinkDetails.ReferralLinkRaisedBtcSatoshies,
+                ReferralLinkEligibleBtcSatoshies = referralLinkDetails.ReferralLinkEligibleBtcSatoshies,
+
+                OneAireInSatoshies = this.GetOneAIREPriceInSatoshies(user.RegisteredFromReferralLinkId)
+            };
+        }
+
+        private async Task<(long ReferralLinkRaisedBtcSatoshies, long ReferralLinkEligibleBtcSatoshies, string ReferralLinkUrl)> GetReferralLinkDetails(string userId)
+        {
+            var platformUrl = this.configuration.GetValue<string>("TokenairePlatformUrl");
             var referralLinkId = await this
                 .userReferralLinkService
                 .GetReferralLinkIdAsync(userId, ServiceUserReferralLinkType.ICO);
@@ -195,75 +238,39 @@ namespace Tokenaire.Service
                 throw new InvalidOperationException("not possible");
             }
 
-            var ICOBTCInvested = await this.tokenaireContext.ICOOutboundAIRETransactions
-                .Where(x => x.UserId == userId)
-                .Select(x => x.ValueReceivedInSatoshies)
-                .SumAsync() / this.oneBTCInSatoshies;
-
-            var btcAmountRaised = await this.tokenaireContext.ICOOutboundAIRETransactions
+            var referralLinkRaisedBtcSatoshies = await this.tokenaireContext.ICOOutboundAIRETransactions
                 .Where(x => x.RegisteredFromReferralLinkId == referralLinkId)
                 .Select(x => x.ValueReceivedInSatoshies)
-                .SumAsync() / this.oneBTCInSatoshies;
+                .SumAsync();
 
-            var referralLinkEligibleBtc = btcAmountRaised / 100 * this.referralLinkRateInPercentage;
-            if (btcAmountRaised < 1)
+            var referralLinkUrl = $"{platformUrl}/?referralLinkId={referralLinkId}";
+            var referralLinkEligibleBtcSatoshies = referralLinkRaisedBtcSatoshies / 100 * this.referralLinkRateInPercentage;
+            if (this.mathService.ConvertSatoshiesToBTC(referralLinkRaisedBtcSatoshies) < this.referralLinkMinimumRaisedBtc)
             {
-                referralLinkEligibleBtc = 0;
+                referralLinkEligibleBtcSatoshies = 0;
             }
 
-            return new ServiceIcoFundsMyDetailsResult()
-            {
-                ICOBTCAddress = user.ICOBTCAddress,
-                ICOBTCInvested = ICOBTCInvested,
-                ReferralLinkUrl = $"{platformUrl}/?referralLinkId={referralLinkId}",
-                ReferralLinkRaisedBtc = btcAmountRaised,
-                ReferralLinkEligibleBtc = referralLinkEligibleBtc
-            };
+            return (referralLinkRaisedBtcSatoshies, referralLinkEligibleBtcSatoshies, referralLinkUrl);
         }
 
-        private async Task<bool> ProcessTransferEntry(
+        private async Task<bool> ProcessExistingTransferEntry(
             ServiceUser user,
             ServiceBitGoWalletTransfer receivedTransfer,
-            ServiceBitGoWalletTransferEntry transferEntry)
+            ServiceBitGoWalletTransferEntry transferEntry,
+            DatabaseIcOOutboundAIRETransaction savedIcoOutboundTransaction)
         {
-            // we will double check if we have already processed these funds or not.
-            // BitGO api might give us multiple transfers.
-            var icoOutboundTransaction = await this.tokenaireContext
-                .ICOOutboundAIRETransactions
-                .FirstOrDefaultAsync((t) =>
-                        t.TxIdSource.ToLower() == receivedTransfer.TxId.ToLower() &&
-                        t.AddressSource.ToLower() == transferEntry.Address.ToLower());
 
-            if (icoOutboundTransaction != null)
+            if (!this.canSendAIRETokens)
             {
                 return false;
             }
 
-            // user didn't buy anything at all,
-            // we'll ignore this for now!
-            var valueInAIRE = (long)(transferEntry.Value / this.oneAireInSatoshies);
-            if (valueInAIRE < 1)
+            if (savedIcoOutboundTransaction.IsProcessed)
             {
                 return false;
             }
 
-            // add a record that we have seen this wallet transfer entry
-            // before.
-            var savedIcoOutboundTransaction = new DatabaseIcOOutboundAIRETransaction()
-            {
-                TxIdSource = receivedTransfer.TxId,
-                AddressSource = transferEntry.Address,
-
-                ValueReceivedInSatoshies = transferEntry.Value,
-                ValueSentInAIRE = valueInAIRE,
-
-                Rate = this.oneAireInSatoshies,
-
-                RegisteredFromReferralLinkId = user.RegisteredFromReferralLinkId,
-                UserId = user.Id
-            };
-
-            await this.tokenaireContext.ICOOutboundAIRETransactions.AddAsync(savedIcoOutboundTransaction);
+            savedIcoOutboundTransaction.IsProcessed = true;
             await this.tokenaireContext.SaveChangesAsync();
 
             // we have a record on our database
@@ -280,7 +287,7 @@ namespace Tokenaire.Service
 
                 Attachment = savedIcoOutboundTransaction.Id.ToString(),
                 ToAddress = user.Address,
-                Amount = valueInAIRE
+                Amount = savedIcoOutboundTransaction.ValueSentInAIRE
             });
 
             savedIcoOutboundTransaction.IsSuccessful = wavesAssetTransferResponse.IsSuccessful;
@@ -290,24 +297,46 @@ namespace Tokenaire.Service
             return wavesAssetTransferResponse.IsSuccessful;
         }
 
-        private async Task<long> GetReferralAmountEligibleBtc(string referralLinkId)
+        private async Task<bool> ProcessNewTransferEntry(
+            ServiceUser user,
+            ServiceBitGoWalletTransfer receivedTransfer,
+            ServiceBitGoWalletTransferEntry transferEntry)
         {
-            if (string.IsNullOrEmpty(referralLinkId))
+            var oneAirePriceInSatoshies = this.GetOneAIREPriceInSatoshies(user.RegisteredFromReferralLinkId);
+            var valueInAIRE = (long)(transferEntry.Value / oneAirePriceInSatoshies);
+            if (valueInAIRE < 1)
             {
-                return 0;
+                return false;
             }
 
-            var btcAmount = await this.tokenaireContext.ICOOutboundAIRETransactions
-                .Where(x => x.RegisteredFromReferralLinkId == referralLinkId)
-                .Select(x => x.ValueReceivedInSatoshies)
-                .SumAsync() / this.oneBTCInSatoshies;
-
-            if (btcAmount < 1)
+            // add a record that we have seen this wallet transfer entry
+            // before.
+            var savedIcoOutboundTransaction = new DatabaseIcOOutboundAIRETransaction()
             {
-                return 0;
-            }
+                TxIdSource = receivedTransfer.TxId,
+                AddressSource = transferEntry.Address,
 
-            return btcAmount / 100 * this.referralLinkRateInPercentage;
+                ValueReceivedInSatoshies = transferEntry.Value,
+                ValueSentInAIRE = valueInAIRE,
+
+                OneAirePriceInSatoshies = oneAirePriceInSatoshies,
+
+                RegisteredFromReferralLinkId = user.RegisteredFromReferralLinkId,
+                UserId = user.Id
+            };
+
+            await this.tokenaireContext.ICOOutboundAIRETransactions.AddAsync(savedIcoOutboundTransaction);
+            await this.tokenaireContext.SaveChangesAsync();
+            return true;
+        }
+
+        private long GetOneAIREPriceInSatoshies(string registeredFromReferralLinkId)
+        {
+            var oneAireInSatoshiesNormal = 80;
+            var oneAireInSatoshiesReferralLink = 60;
+            return string.IsNullOrEmpty(registeredFromReferralLinkId) ?
+                oneAireInSatoshiesNormal :
+                oneAireInSatoshiesReferralLink;
         }
     }
 }

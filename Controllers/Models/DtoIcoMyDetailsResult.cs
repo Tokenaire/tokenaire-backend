@@ -7,12 +7,12 @@ namespace Tokenaire.Controllers.Models
     public class DtoIcoMyDetailsResult
     {
         public string ICOBTCAddress { get; set; }
-        public long ICOBTCInvested { get;  set; }
-
+        public string ICOBTCInvested { get; set; }
 
         public string ReferralLinkUrl { get; set; }
-        public long ReferralLinkEligibleBtc { get; set; }
-        public long ReferralLinkRaisedBtc { get; set; }
-        public long? AireBalance { get; set; }
+        public string ReferralLinkEligibleBtc { get; set; }
+        public string ReferralLinkRaisedBtc { get; set; }
+
+        public long OneAireInSatoshies { get; set; }
     }
 }
