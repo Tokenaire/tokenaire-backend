@@ -19,7 +19,6 @@ namespace Tokenaire.Service.Models
         public string RegisteredFromReferralLinkId { get; set; }
 
         public string ICOBTCAddress { get; set; }
-        public string UserBTCAddress { get; set; }
 
         public string RegisteredFromIP { get; set; }
 

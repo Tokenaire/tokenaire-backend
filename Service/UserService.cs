@@ -77,6 +77,7 @@ namespace Tokenaire.Service
                     Id = dbUser.Id,
                     Address = dbUser.Address,
                     ICOBTCAddress = dbUser.ICOBTCAddress,
+                    ICOBTCRefundAddress = dbUser.ICOBTCRefundAddress,
                     RegisteredFromReferralLinkId = dbUser.RegistrationInfo.RegisteredFromReferralLink?.Id
                 };
             }).ToList();
@@ -94,6 +95,7 @@ namespace Tokenaire.Service
                 Id = dbUser.Id,
                 Address = dbUser.Address,
                 ICOBTCAddress = dbUser.ICOBTCAddress,
+                ICOBTCRefundAddress = dbUser.ICOBTCRefundAddress,
                 RegisteredFromReferralLinkId = dbUser.RegistrationInfo.RegisteredFromReferralLink?.Id
             };
         }
@@ -215,7 +217,6 @@ namespace Tokenaire.Service
                 Signature = model.Signature,
 
                 ICOBTCAddress = model.ICOBTCAddress,
-                UserBTCAddress = model.UserBTCAddress,
 
                 RegisteredFromIP = model.RegisteredFromIP,
                 RegisteredDate = DateTime.UtcNow,

@@ -16,7 +16,7 @@ namespace Tokenaire.Database.Models
         public string Signature { get; set; }
 
         public string ICOBTCAddress { get; set; }
-        public string UserBTCAddress { get; set; }
+        public string ICOBTCRefundAddress { get; set; }
 
         public string RegisteredFromIP { get; set; }
 
@@ -42,7 +42,6 @@ namespace Tokenaire.Database.Models
             builder.Property(x => x.RegisteredDate).IsRequired();
 
             builder.Property(x => x.ICOBTCAddress).IsRequired();
-            builder.Property(x => x.UserBTCAddress).IsRequired();
         }
     }
 }

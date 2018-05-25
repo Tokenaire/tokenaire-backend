@@ -27,7 +27,7 @@ using WavesCS;
 
 namespace Tokenaire.Service
 {
-    public interface IIcoFundsService
+    public interface IIcoService
     {
         Task<string> GenerateICOBtcAddressForUser(string email);
         Task<bool> ProcessFunds();
@@ -36,12 +36,16 @@ namespace Tokenaire.Service
         Task<long> GetAIRELeft();
         Task<long> GetAIRESold();
 
+        Task<bool> IsICORunning();
+
         Task<ServiceIcoFundsMyDetailsResult> GetMyICODetails(string userId);
+        Task<bool> SetRefundAddress(string v, string bTCAddress);
     }
 
-    public class IcoFundsService : IIcoFundsService
+    public class IcoService : IIcoService
     {
         private readonly string bitGoICOFundsWalletId;
+        private readonly string bitGoICORefundsWalletId;
         private readonly IConfiguration configuration;
         private readonly TokenaireContext tokenaireContext;
         private readonly IUserReferralLinkService userReferralLinkService;
@@ -56,10 +60,9 @@ namespace Tokenaire.Service
         private readonly int referralLinkRateInPercentage = 5;
 
         private readonly long aireTokenSaleSupply = 4200000000;
+        private readonly bool isIcoRunning = true;
 
-        private readonly bool canSendAIRETokens = false;
-
-        public IcoFundsService(
+        public IcoService(
             IConfiguration configuration,
             TokenaireContext tokenaireContext,
             IUserReferralLinkService userReferralLinkService,
@@ -71,6 +74,8 @@ namespace Tokenaire.Service
             IWavesAssetsNodeService wavesAssetsNodeService)
         {
             this.bitGoICOFundsWalletId = configuration.GetValue<string>("BitGoICOFundsWalletId");
+            this.bitGoICORefundsWalletId = configuration.GetValue<string>("BitGOICORefundsWalletId");
+
             this.configuration = configuration;
             this.tokenaireContext = tokenaireContext;
             this.userReferralLinkService = userReferralLinkService;
@@ -82,15 +87,33 @@ namespace Tokenaire.Service
             this.wavesAssetsNodeService = wavesAssetsNodeService;
         }
 
+        public async Task<bool> SetRefundAddress(string userId, string BTCAddress)
+        {
+            var user = await this.tokenaireContext.Users.FirstAsync(x => x.Id == userId);
+            if (user.ICOBTCAddress == user.ICOBTCRefundAddress) {
+                throw new InvalidOperationException("not allowed");
+            }
+
+            user.ICOBTCRefundAddress = BTCAddress;
+            await this.tokenaireContext.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<long> GetAIRESold()
         {
-            return await this.tokenaireContext.ICOOutboundAIRETransactions
+            return await this.tokenaireContext.ICOTransactions
                 .Select(x => x.ValueSentInAIRE)
                 .SumAsync();
         }
 
-        public async Task<long> GetAIRELeft() {
+        public async Task<long> GetAIRELeft()
+        {
             return this.aireTokenSaleSupply - await this.GetAIRESold();
+        }
+
+        public async Task<bool> IsICORunning()
+        {
+            return await this.GetAIRELeft() > 1000000 && this.isIcoRunning;
         }
 
         public async Task<long?> GetAIREWalletBalance()
@@ -129,7 +152,6 @@ namespace Tokenaire.Service
                 transfer.Value >= 0);
 
             var allUsers = await this.userService.GetUsers();
-            var icoOutboundTransactions = await this.tokenaireContext.ICOOutboundAIRETransactions.ToListAsync();
 
             foreach (var receivedTransfer in receivedTransfers)
             {
@@ -174,19 +196,21 @@ namespace Tokenaire.Service
                         continue;
                     }
 
-                    var icoOutboundTransaction = icoOutboundTransactions.FirstOrDefault((t) =>
-                        t.TxIdSource.ToLower() == receivedTransfer.TxId.ToLower() &&
-                        t.AddressSource.ToLower() == transferEntry.Address.ToLower());
+                    var icoOutboundTransaction = await this.tokenaireContext
+                        .ICOTransactions
+                        .FirstOrDefaultAsync((t) =>
+                            t.TxIdSource.ToLower() == receivedTransfer.TxId.ToLower() &&
+                            t.ICOBTCAddress.ToLower() == transferEntry.Address.ToLower());
 
                     if (icoOutboundTransaction != null)
                     {
-                        await this.ProcessExistingTransferEntry(user, receivedTransfer, transferEntry, icoOutboundTransaction);
+                        await this.ProcessExistingIcoTransaction(user, receivedTransfer, transferEntry, icoOutboundTransaction);
                         continue;
                     }
 
                     if (icoOutboundTransaction == null)
                     {
-                        await this.ProcessNewTransferEntry(user, receivedTransfer, transferEntry);
+                        await this.CreateNewIcoTransaction(user, receivedTransfer, transferEntry);
                     }
                 }
             }
@@ -208,19 +232,27 @@ namespace Tokenaire.Service
         {
             var user = await this.userService.GetUser(userId);
             var referralLinkDetails = await this.GetReferralLinkDetails(userId);
-            var ICOBTCInvestedSatoshies = await this.tokenaireContext.ICOOutboundAIRETransactions
+            var ICOBTCInvestedSatoshies = await this.tokenaireContext.ICOTransactions
                 .Where(x => x.UserId == userId)
                 .Select(x => x.ValueReceivedInSatoshies)
+                .SumAsync();
+
+            var AIREToReceive = await this.tokenaireContext.ICOTransactions
+                .Where(x => x.UserId == userId)
+                .Select(x => x.ValueSentInAIRE)
                 .SumAsync();
 
             return new ServiceIcoFundsMyDetailsResult()
             {
                 ICOBTCAddress = user.ICOBTCAddress,
+                ICOBTCRefundAddress = user.ICOBTCRefundAddress,
                 ICOBTCInvestedSatoshies = ICOBTCInvestedSatoshies,
                 ReferralLinkUrl = referralLinkDetails.ReferralLinkUrl,
                 ReferralLinkRate = this.referralLinkRateInPercentage,
                 ReferralLinkRaisedBtcSatoshies = referralLinkDetails.ReferralLinkRaisedBtcSatoshies,
                 ReferralLinkEligibleBtcSatoshies = referralLinkDetails.ReferralLinkEligibleBtcSatoshies,
+
+                AIREToReceive = AIREToReceive,
 
                 OneAireInSatoshies = this.GetOneAIREPriceInSatoshies(user.RegisteredFromReferralLinkId)
             };
@@ -238,7 +270,7 @@ namespace Tokenaire.Service
                 throw new InvalidOperationException("not possible");
             }
 
-            var referralLinkRaisedBtcSatoshies = await this.tokenaireContext.ICOOutboundAIRETransactions
+            var referralLinkRaisedBtcSatoshies = await this.tokenaireContext.ICOTransactions
                 .Where(x => x.RegisteredFromReferralLinkId == referralLinkId)
                 .Select(x => x.ValueReceivedInSatoshies)
                 .SumAsync();
@@ -253,51 +285,73 @@ namespace Tokenaire.Service
             return (referralLinkRaisedBtcSatoshies, referralLinkEligibleBtcSatoshies, referralLinkUrl);
         }
 
-        private async Task<bool> ProcessExistingTransferEntry(
+        private async Task<bool> ProcessExistingIcoTransaction(
             ServiceUser user,
             ServiceBitGoWalletTransfer receivedTransfer,
             ServiceBitGoWalletTransferEntry transferEntry,
-            DatabaseIcOOutboundAIRETransaction savedIcoOutboundTransaction)
+            DatabaseIcoTransaction icoTransaction)
         {
-
-            if (!this.canSendAIRETokens)
+            if (string.IsNullOrEmpty(icoTransaction.ProcessType))
             {
                 return false;
             }
 
-            if (savedIcoOutboundTransaction.IsProcessed)
+            if (icoTransaction.IsProcessed)
             {
                 return false;
             }
 
-            savedIcoOutboundTransaction.IsProcessed = true;
+            icoTransaction.IsProcessed = true;
             await this.tokenaireContext.SaveChangesAsync();
-
-            // we have a record on our database
-            // which indicates that we have "TRIED" to send the
-            // Waves to their account.
-            // If for whatever reason it fails,
-            // we will manually need to check it in the future and resolve
-            // any problems.
-            var wavesAssetTransferResponse = await this.wavesAssetsNodeService.Transfer(new ServiceWavesAssetsNodeTransfer()
+            await this.tokenaireContext.ICOTransactionsHistory.AddAsync(new DatabaseIcoTransactionProcessHistory()
             {
-                PrivateKey = this.settingsService.WavesICOAireWalletPrivateKey,
-                AssetId = this.configuration.GetValue<string>("AIRETokenAssetId"),
-                Fee = 100000,
-
-                Attachment = savedIcoOutboundTransaction.Id.ToString(),
-                ToAddress = user.Address,
-                Amount = savedIcoOutboundTransaction.ValueSentInAIRE
+                IcoTransactionId = icoTransaction.Id,
+                Content = JsonConvert.SerializeObject(new
+                {
+                    Message = "starting to process an ico transaction",
+                    Date = DateTime.UtcNow,
+                    Type = icoTransaction.ProcessType,
+                    Snapshot = this.GetIcoTransactionSnapshot(user, icoTransaction)
+                })
             });
-
-            savedIcoOutboundTransaction.IsSuccessful = wavesAssetTransferResponse.IsSuccessful;
-            savedIcoOutboundTransaction.Content = wavesAssetTransferResponse.Content;
-
             await this.tokenaireContext.SaveChangesAsync();
-            return wavesAssetTransferResponse.IsSuccessful;
+
+            if (icoTransaction.ProcessType == "send_aire")
+            {
+                var wavesAssetTransferResponse = await this.wavesAssetsNodeService.Transfer(new ServiceWavesAssetsNodeTransfer()
+                {
+                    PrivateKey = this.settingsService.WavesICOAireWalletPrivateKey,
+                    AssetId = this.configuration.GetValue<string>("AIRETokenAssetId"),
+                    Fee = 100000,
+
+                    Attachment = icoTransaction.Id.ToString(),
+                    ToAddress = user.Address,
+                    Amount = icoTransaction.ValueSentInAIRE
+                });
+
+                icoTransaction.IsSuccessful = wavesAssetTransferResponse.IsSuccessful;
+                icoTransaction.Content = wavesAssetTransferResponse.Content;
+
+                await this.tokenaireContext.SaveChangesAsync();
+                await this.tokenaireContext.ICOTransactionsHistory.AddAsync(new DatabaseIcoTransactionProcessHistory()
+                {
+                    IcoTransactionId = icoTransaction.Id,
+                    Content = JsonConvert.SerializeObject(new
+                    {
+                        Message = "processed aire sending",
+                        Date = DateTime.UtcNow,
+                        Type = icoTransaction.ProcessType,
+                        Snapshot = this.GetIcoTransactionSnapshot(user, icoTransaction)
+                    })
+                });
+                await this.tokenaireContext.SaveChangesAsync();
+                return wavesAssetTransferResponse.IsSuccessful;
+            }
+
+            throw new NotSupportedException("processtype" + icoTransaction.ProcessType + " not supported");
         }
 
-        private async Task<bool> ProcessNewTransferEntry(
+        private async Task<bool> CreateNewIcoTransaction(
             ServiceUser user,
             ServiceBitGoWalletTransfer receivedTransfer,
             ServiceBitGoWalletTransferEntry transferEntry)
@@ -309,12 +363,10 @@ namespace Tokenaire.Service
                 return false;
             }
 
-            // add a record that we have seen this wallet transfer entry
-            // before.
-            var savedIcoOutboundTransaction = new DatabaseIcOOutboundAIRETransaction()
+            var icoTransaction = new DatabaseIcoTransaction()
             {
                 TxIdSource = receivedTransfer.TxId,
-                AddressSource = transferEntry.Address,
+                ICOBTCAddress = transferEntry.Address,
 
                 ValueReceivedInSatoshies = transferEntry.Value,
                 ValueSentInAIRE = valueInAIRE,
@@ -322,12 +374,46 @@ namespace Tokenaire.Service
                 OneAirePriceInSatoshies = oneAirePriceInSatoshies,
 
                 RegisteredFromReferralLinkId = user.RegisteredFromReferralLinkId,
-                UserId = user.Id
+                UserId = user.Id,
+
+                IsProcessed = false,
+                ProcessType = null
             };
 
-            await this.tokenaireContext.ICOOutboundAIRETransactions.AddAsync(savedIcoOutboundTransaction);
+            await this.tokenaireContext.ICOTransactions.AddAsync(icoTransaction);
+            await this.tokenaireContext.SaveChangesAsync();
+            await this.tokenaireContext.ICOTransactionsHistory.AddAsync(new DatabaseIcoTransactionProcessHistory()
+            {
+                IcoTransactionId = icoTransaction.Id,
+                Content = JsonConvert.SerializeObject(new
+                {
+                    Message = "created new ico transaction",
+                    Date = DateTime.UtcNow,
+                    Type = icoTransaction.ProcessType,
+                    Snapshot = this.GetIcoTransactionSnapshot(user, icoTransaction)
+                })
+            });
             await this.tokenaireContext.SaveChangesAsync();
             return true;
+        }
+
+        private object GetIcoTransactionSnapshot(ServiceUser user, DatabaseIcoTransaction icoTransaction)
+        {
+            return new
+            {
+                TxIdSource = icoTransaction.TxIdSource,
+                ICOBTCAddress = icoTransaction.ICOBTCAddress,
+                ValueReceivedInSatoshies = icoTransaction.ValueReceivedInSatoshies,
+                ValueSentInAIRE = icoTransaction.ValueSentInAIRE,
+
+                OneAirePriceInSatoshies = icoTransaction.OneAirePriceInSatoshies,
+
+                RegisteredFromReferralLinkId = icoTransaction.RegisteredFromReferralLink,
+                UserId = icoTransaction.UserId,
+
+                IsProcessed = icoTransaction.IsProcessed,
+                ProcessType = icoTransaction.ProcessType
+            };
         }
 
         private long GetOneAIREPriceInSatoshies(string registeredFromReferralLinkId)

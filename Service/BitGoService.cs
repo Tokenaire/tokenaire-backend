@@ -30,6 +30,7 @@ namespace Tokenaire.Service
     {
         Task<string> GenerateBtcAddress(string walletAddress, string label);
         Task<List<ServiceBitGoWalletTransfer>> GetWalletTransfers(string walletAddress);
+        Task<ServiceBitGoWalletSendResult> Send(ServiceBitGoWalletSend model);
     }
 
     public class BitGoService : IBitGoService
@@ -38,12 +39,43 @@ namespace Tokenaire.Service
         private readonly string apiKey;
         private readonly string apiUrl;
         private readonly string bitGoICOFundsWalletId;
+        private readonly string bitGoICORefundsWalletId;
 
         public BitGoService(IConfiguration configuration, ISettingsService settingsService)
         {
             apiKey = settingsService.BitGoICOFundsApiKey;
             apiUrl = configuration.GetValue<string>("BitGoApiUrl");
             bitGoICOFundsWalletId = configuration.GetValue<string>("BitGoICOFundsWalletId");
+            bitGoICORefundsWalletId = configuration.GetValue<string>("BitGOICORefundsWalletId");
+        }
+
+        public async Task<ServiceBitGoWalletSendResult> Send(ServiceBitGoWalletSend model) {
+            var url = $"btc/wallet/{model.WalletId}/transfer";
+            var body = new {
+                amount = model.AmountInSatoshies,
+                address = model.Address, 
+                walletPassphrase = model.WalletPassword
+            };
+
+            var response = await this.postAsync(url, body);
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                dynamic data = JsonConvert.DeserializeObject(response.Content);
+                return new ServiceBitGoWalletSendResult() {
+                    IsSuccessful = true,
+                    Content = response.Content,
+
+                    TxId = data.txid,
+                    Status = data.status
+                };
+            }
+            else
+            {
+                return new ServiceBitGoWalletSendResult() {
+                    IsSuccessful = false,
+                    Content = response.Content
+                };
+            }
         }
 
         public async Task<List<ServiceBitGoWalletTransfer>> GetWalletTransfers(string walletAddress)

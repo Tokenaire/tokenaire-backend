@@ -14,9 +14,9 @@ namespace tokenaire_backend.Controllers
     [Route("api/[controller]")]
     public class DebugController : Controller
     {
-        private readonly IIcoFundsService icoFundsService;
+        private readonly IIcoService icoFundsService;
 
-        public DebugController(IIcoFundsService icoFundsService)
+        public DebugController(IIcoService icoFundsService)
         {
             this.icoFundsService = icoFundsService;
         }

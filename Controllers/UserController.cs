@@ -18,13 +18,13 @@ namespace tokenaire_backend.Controllers
     public class UserController : Controller
     {
         private readonly IUserService _userService;
-        private readonly IIcoFundsService icoFundsService;
+        private readonly IIcoService icoFundsService;
         private readonly IWavesCoinomatService wavesCoinomatService;
         private readonly IIpService ipService;
 
         public UserController(
             IUserService userService,
-            IIcoFundsService icoFundsService,
+            IIcoService icoFundsService,
             IWavesCoinomatService wavesCoinomatService,
             IIpService ipService)
         {
@@ -53,7 +53,6 @@ namespace tokenaire_backend.Controllers
         public async Task<IActionResult> Create([FromBody]DtoUserCreate model)
         {
             var ICOBTCAddress = await this.icoFundsService.GenerateICOBtcAddressForUser(model?.Email);
-            var userBTCAddress = await this.wavesCoinomatService.GenerateBTCAddressFromWavesAddress(model?.Address);
             var serviceResult = await _userService.CreateAsync(new ServiceUserCreate()
             {
                 Email = model?.Email,
@@ -65,7 +64,6 @@ namespace tokenaire_backend.Controllers
                 Signature = model?.Signature,
 
                 ICOBTCAddress = ICOBTCAddress,
-                UserBTCAddress = userBTCAddress,
 
                 RegisteredFromIP = await this.ipService.GetClientIp(),
                 RegisteredFromReferralLinkId = model.RegisteredFromReferralLinkId,

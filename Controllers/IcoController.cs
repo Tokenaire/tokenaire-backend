@@ -16,14 +16,14 @@ namespace tokenaire_backend.Controllers
     [Route("api/[controller]")]
     public class IcoController : Controller
     {
-        private readonly IIcoFundsService icoFundsService;
+        private readonly IIcoService icoFundsService;
         private readonly IUserReferralLinkService userReferralLinkService;
         private readonly IUserService userService;
         private readonly IMathService mathService;
         private readonly IConfiguration configuration;
 
         public IcoController(
-            IIcoFundsService icoFundsService,
+            IIcoService icoFundsService,
             IUserReferralLinkService userReferralLinkService,
             IUserService userService,
             IMathService mathService,
@@ -36,24 +36,34 @@ namespace tokenaire_backend.Controllers
             this.configuration = configuration;
         }
 
+        [Route("setRefundAddress")]
+        [HttpPost]
+        public async Task<IActionResult> SetRefundAddress([FromBody]DtoSetRefundAddress model) 
+        {
+            await this.icoFundsService.SetRefundAddress(User.GetUserId(), model?.BTCAddress);
+            return Ok();
+        }
+
         [Route("mydetails")]
         [HttpGet]
         public async Task<IActionResult> MyDetails()
         {
             var platformUrl = this.configuration.GetValue<string>("TokenairePlatformUrl");
             var icoDetails = await this.icoFundsService.GetMyICODetails(User.GetUserId());
-            var AIREBalance = await this.icoFundsService.GetAIREWalletBalance();
-
-            var showIcoBTCAddress = AIREBalance != null && AIREBalance > 10000000;
+            var isIcoRunning = await this.icoFundsService.IsICORunning();
 
             return Ok(new DtoIcoMyDetailsResult() {
-                ICOBTCAddress = showIcoBTCAddress ? icoDetails.ICOBTCAddress : null,
+                ICOBTCAddress = isIcoRunning ? icoDetails.ICOBTCAddress : null,
+                ICOBTCRefundAddress = icoDetails.ICOBTCRefundAddress,
+
                 ICOBTCInvested =  this.mathService.ConvertSatoshiesToBTCFormatted(icoDetails.ICOBTCInvestedSatoshies),
                 ReferralLinkUrl = icoDetails.ReferralLinkUrl,
                 ReferralLinkRaisedBtc = this.mathService.ConvertSatoshiesToBTCFormatted(icoDetails.ReferralLinkRaisedBtcSatoshies),
                 ReferralLinkEligibleBtc = this.mathService.ConvertSatoshiesToBTCFormatted(icoDetails.ReferralLinkEligibleBtcSatoshies),
 
-                OneAireInSatoshies = icoDetails.OneAireInSatoshies
+                OneAireInSatoshies = icoDetails.OneAireInSatoshies,
+
+                AireToReceive = icoDetails.AIREToReceive
             });
         }
 

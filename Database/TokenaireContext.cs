@@ -17,7 +17,8 @@ namespace Tokenaire.Database
         public DbSet<DatabaseUserReferralLink> UserReferralLinks { get; set; }
         public DbSet<DatabaseUserRegistrationInfo> UserRegistrationInfos { get; set; }
 
-        public DbSet<DatabaseIcOOutboundAIRETransaction> ICOOutboundAIRETransactions { get; set; }
+        public DbSet<DatabaseIcoTransaction> ICOTransactions { get; set; }
+        public DbSet<DatabaseIcoTransactionProcessHistory> ICOTransactionsHistory { get; set; }
 
         public TokenaireContext(DbContextOptions<TokenaireContext> options) : base(options)
         {
@@ -36,7 +37,7 @@ namespace Tokenaire.Database
             modelBuilder.ApplyConfiguration(new DatabaseUserConfig());
             modelBuilder.ApplyConfiguration(new DatabaseUserReferralLinkConfig());
             modelBuilder.ApplyConfiguration(new DatabaseUserRegistrationInfoConfig());
-            modelBuilder.ApplyConfiguration(new DatabaseICOOutboundAIRETransactionConfig());
+            modelBuilder.ApplyConfiguration(new DatabaseIcoTransactionConfig());
 
 
             MethodInfo methodInfo = typeof(TokenaireContext)

@@ -31,7 +31,7 @@ namespace Tokenaire.Service
             services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
 
             services.AddScoped<IUserService, UserService>();
-            services.AddScoped<IIcoFundsService, IcoFundsService>();
+            services.AddScoped<IIcoService, IcoService>();
             services.AddScoped<IEmailSubscriptionService, EmailSubscriptionService>();
             services.AddScoped<IUserReferralLinkService, UserReferralLinkService>();
 

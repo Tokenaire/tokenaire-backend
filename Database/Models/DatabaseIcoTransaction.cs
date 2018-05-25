@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Tokenaire.Database.Models
 {
-    public class DatabaseIcOOutboundAIRETransaction
+    public class DatabaseIcoTransaction
     {
         public int Id { get; set; }
 
@@ -14,12 +14,13 @@ namespace Tokenaire.Database.Models
 
         public string TxIdSource { get; set; }
 
-        public string AddressSource { get; set; }
+        public string ICOBTCAddress { get; set; }
 
         public bool? IsSuccessful { get; set; }
         public string Content { get; set; }
 
         public bool IsProcessed { get; set; }
+        public string ProcessType { get;  set; }
 
         public long ValueReceivedInSatoshies { get;  set; }
         public long ValueSentInAIRE { get; set; }
@@ -29,13 +30,13 @@ namespace Tokenaire.Database.Models
         public DatabaseUserReferralLink RegisteredFromReferralLink { get; set; }
     }
 
-    public class DatabaseICOOutboundAIRETransactionConfig : IEntityTypeConfiguration<DatabaseIcOOutboundAIRETransaction>
+    public class DatabaseIcoTransactionConfig : IEntityTypeConfiguration<DatabaseIcoTransaction>
     {
-        public void Configure(EntityTypeBuilder<DatabaseIcOOutboundAIRETransaction> builder)
+        public void Configure(EntityTypeBuilder<DatabaseIcoTransaction> builder)
         {
             builder.HasKey(x => x.Id);
             builder.Property(x => x.UserId).IsRequired();
-            builder.HasIndex(i => new { i.TxIdSource, i.AddressSource }).IsUnique();
+            builder.HasIndex(i => new { i.TxIdSource, i.ICOBTCAddress }).IsUnique();
         }
     }
 }

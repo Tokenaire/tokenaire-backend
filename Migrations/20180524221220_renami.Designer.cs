@@ -13,9 +13,10 @@ using Tokenaire.Database.Models;
 namespace tokenairebackend.Migrations
 {
     [DbContext(typeof(TokenaireContext))]
-    partial class TokenaireContextModelSnapshot : ModelSnapshot
+    [Migration("20180524221220_renami")]
+    partial class renami
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -42,7 +43,7 @@ namespace tokenairebackend.Migrations
                     b.ToTable("Emails");
                 });
 
-            modelBuilder.Entity("Tokenaire.Database.Models.DatabaseIcoTransaction", b =>
+            modelBuilder.Entity("Tokenaire.Database.Models.DatabaseIcOOutboundAIRETransaction", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd();
@@ -56,8 +57,6 @@ namespace tokenairebackend.Migrations
                     b.Property<bool?>("IsSuccessful");
 
                     b.Property<long>("OneAirePriceInSatoshies");
-
-                    b.Property<string>("ProcessType");
 
                     b.Property<string>("RegisteredFromReferralLinkId");
 
@@ -80,23 +79,7 @@ namespace tokenairebackend.Migrations
                         .IsUnique()
                         .HasFilter("[TxIdSource] IS NOT NULL AND [ICOBTCAddress] IS NOT NULL");
 
-                    b.ToTable("ICOTransactions");
-                });
-
-            modelBuilder.Entity("Tokenaire.Database.Models.DatabaseIcoTransactionProcessHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd();
-
-                    b.Property<string>("Content");
-
-                    b.Property<int>("IcoTransactionId");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IcoTransactionId");
-
-                    b.ToTable("ICOTransactionsHistory");
+                    b.ToTable("ICOOutboundAIRETransactions");
                 });
 
             modelBuilder.Entity("Tokenaire.Database.Models.DatabaseUser", b =>
@@ -119,8 +102,6 @@ namespace tokenairebackend.Migrations
 
                     b.Property<string>("ICOBTCAddress")
                         .IsRequired();
-
-                    b.Property<string>("ICOBTCRefundAddress");
 
                     b.Property<DateTime?>("LastLoginDate");
 
@@ -154,6 +135,9 @@ namespace tokenairebackend.Migrations
                         .IsRequired();
 
                     b.Property<bool>("TwoFactorEnabled");
+
+                    b.Property<string>("UserBTCAddress")
+                        .IsRequired();
 
                     b.Property<string>("UserName");
 
@@ -196,7 +180,7 @@ namespace tokenairebackend.Migrations
                     b.ToTable("UserRegistrationInfos");
                 });
 
-            modelBuilder.Entity("Tokenaire.Database.Models.DatabaseIcoTransaction", b =>
+            modelBuilder.Entity("Tokenaire.Database.Models.DatabaseIcOOutboundAIRETransaction", b =>
                 {
                     b.HasOne("Tokenaire.Database.Models.DatabaseUserReferralLink", "RegisteredFromReferralLink")
                         .WithMany()
@@ -205,14 +189,6 @@ namespace tokenairebackend.Migrations
                     b.HasOne("Tokenaire.Database.Models.DatabaseUser", "user")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-                });
-
-            modelBuilder.Entity("Tokenaire.Database.Models.DatabaseIcoTransactionProcessHistory", b =>
-                {
-                    b.HasOne("Tokenaire.Database.Models.DatabaseIcoTransaction", "IcoTransaction")
-                        .WithMany()
-                        .HasForeignKey("IcoTransactionId")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
