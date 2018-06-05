@@ -403,6 +403,7 @@ namespace Tokenaire.Service
             {
                 TxIdSource = icoTransaction.TxIdSource,
                 ICOBTCAddress = icoTransaction.ICOBTCAddress,
+                
                 ValueReceivedInSatoshies = icoTransaction.ValueReceivedInSatoshies,
                 ValueSentInAIRE = icoTransaction.ValueSentInAIRE,
 
