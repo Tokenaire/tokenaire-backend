@@ -67,7 +67,7 @@ namespace tokenaire_backend
             app.UseAuthentication();
             app.UseCors(
                 options => options
-                    .WithOrigins("https://beta.tokenaire.club")
+                    .WithOrigins("https://marketplace.tokenaire.club")
                     .WithOrigins("https://tokenaire.club")
                     .WithOrigins("https://www.tokenaire.club")
 
