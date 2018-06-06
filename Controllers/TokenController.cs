@@ -30,6 +30,10 @@ namespace tokenaire_backend.Controllers
             var aireTokenAssetId = this.configuration.GetValue<string>("AIRETokenAssetId");
             var btcAssetId = "8LQW8f7P5d5PZM7GtZEBgaqRPGSzS3DfPuiXrURJ4AJS";
 
+            var chrisEelmaaAssetId = "2ATzTjhsgkswXbnMGfucnto1fj6E9mXEQiC3jF6zpWoC";
+            var joyceAssetId = "HyEhnk91FYXsbj1sYXWT5BvRqi256dx7kA4W8A5DkCvV";
+            var reinhardAssetId = "G6ZGKQ18EeMhBTiUBh9dHPurxZDsaCQvincdwTws2AwA";
+
             return Ok(new DtoTokenSearchResults()
             {
                 DefaultAssetIdPair = new KeyValuePair<string, string>(aireTokenAssetId, "WAVES"),
@@ -62,7 +66,46 @@ namespace tokenaire_backend.Controllers
                         PriceAssetId = "WAVES",
 
                         IsGeneric = true
-                    }
+                    },
+
+
+
+                    new DtoTokenSearchResult() {
+                        Id = Guid.NewGuid().ToString(),
+                        Image = "/img/icons/chris-avatar.jpg",
+
+                        AmountAssetId = aireTokenAssetId,
+                        PriceAssetId = chrisEelmaaAssetId,
+
+                        IsGeneric = false,
+                        ShowDivider = true,
+                    },
+
+                    new DtoTokenSearchResult() {
+                        Id = Guid.NewGuid().ToString(),
+                        Image = "/img/icons/joyce-avatar.jpg",
+
+                        AmountAssetId = aireTokenAssetId,
+                        PriceAssetId = joyceAssetId,
+
+                        IsGeneric = false,
+                        ShowDivider = true,
+                    },
+
+                    new DtoTokenSearchResult() {
+                        Id = Guid.NewGuid().ToString(),
+                        Image = "/img/icons/reinhard-avatar.jpg",
+
+                        AmountAssetId = aireTokenAssetId,
+                        PriceAssetId = reinhardAssetId,
+
+                        IsGeneric = false,
+                        ShowDivider = true,
+                    },
+
+
+
+
                 }
             });
         }

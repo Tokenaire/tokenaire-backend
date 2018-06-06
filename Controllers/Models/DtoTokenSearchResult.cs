@@ -15,5 +15,6 @@ namespace Tokenaire.Controllers.Models
         public string PriceAssetId { get; set; }
 
         public bool IsGeneric { get; set; }
+        public bool ShowDivider { get; set; }
     }
 }
