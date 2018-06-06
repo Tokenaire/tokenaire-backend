@@ -16,5 +16,6 @@ namespace Tokenaire.Controllers.Models
 
         public bool IsGeneric { get; set; }
         public bool ShowDivider { get; set; }
+        public string Name { get;  set; }
     }
 }

@@ -73,6 +73,7 @@ namespace tokenaire_backend.Controllers
                     new DtoTokenSearchResult() {
                         Id = Guid.NewGuid().ToString(),
                         Image = "/img/icons/chris-avatar.jpg",
+                        Name = "Erti-Chris Eelmaa",
 
                         AmountAssetId = aireTokenAssetId,
                         PriceAssetId = chrisEelmaaAssetId,
@@ -84,6 +85,7 @@ namespace tokenaire_backend.Controllers
                     new DtoTokenSearchResult() {
                         Id = Guid.NewGuid().ToString(),
                         Image = "/img/icons/joyce-avatar.jpg",
+                        Name = "Joyce Man",
 
                         AmountAssetId = aireTokenAssetId,
                         PriceAssetId = joyceAssetId,
@@ -95,6 +97,7 @@ namespace tokenaire_backend.Controllers
                     new DtoTokenSearchResult() {
                         Id = Guid.NewGuid().ToString(),
                         Image = "/img/icons/reinhard-avatar.jpg",
+                        Name = "Reinhard Zach",
 
                         AmountAssetId = aireTokenAssetId,
                         PriceAssetId = reinhardAssetId,
