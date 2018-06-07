@@ -19,6 +19,7 @@ namespace tokenaire_backend.Controllers
         private readonly IIcoService icoFundsService;
         private readonly IUserReferralLinkService userReferralLinkService;
         private readonly IUserService userService;
+        private readonly ISettingsService settingsService;
         private readonly IMathService mathService;
         private readonly IConfiguration configuration;
 
@@ -26,12 +27,14 @@ namespace tokenaire_backend.Controllers
             IIcoService icoFundsService,
             IUserReferralLinkService userReferralLinkService,
             IUserService userService,
+            ISettingsService settingsService,
             IMathService mathService,
             IConfiguration configuration)
         {
             this.icoFundsService = icoFundsService;
             this.userReferralLinkService = userReferralLinkService;
             this.userService = userService;
+            this.settingsService = settingsService;
             this.mathService = mathService;
             this.configuration = configuration;
         }
@@ -89,7 +92,7 @@ namespace tokenaire_backend.Controllers
         [HttpPost]
         public async Task<IActionResult> ProcessFunds([FromBody]DtoIcoProcessFunds model)
         {
-            if (model?.SecretPassword != "mysuperskop8329xxkop") {
+            if (model?.SecretPassword != this.settingsService.BackendPassword) {
                 return BadRequest();
             }
 
