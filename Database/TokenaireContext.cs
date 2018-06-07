@@ -18,6 +18,7 @@ namespace Tokenaire.Database
         public DbSet<DatabaseUserRegistrationInfo> UserRegistrationInfos { get; set; }
 
         public DbSet<DatabaseIcoTransaction> ICOTransactions { get; set; }
+        public DbSet<DatabaseIcoKyc> ICOKyc { get; set; }
         public DbSet<DatabaseIcoTransactionProcessHistory> ICOTransactionsHistory { get; set; }
 
         public TokenaireContext(DbContextOptions<TokenaireContext> options) : base(options)
@@ -38,7 +39,7 @@ namespace Tokenaire.Database
             modelBuilder.ApplyConfiguration(new DatabaseUserReferralLinkConfig());
             modelBuilder.ApplyConfiguration(new DatabaseUserRegistrationInfoConfig());
             modelBuilder.ApplyConfiguration(new DatabaseIcoTransactionConfig());
-
+            modelBuilder.ApplyConfiguration(new DatabaseIcoKycConfig());
 
             MethodInfo methodInfo = typeof(TokenaireContext)
                    .GetRuntimeMethod(nameof(DateDiff), new[] { typeof(string), typeof(DateTime), typeof(DateTime) });

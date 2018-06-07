@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Tokenaire.Database.Models;
+using Tokenaire.Service.Enums;
 
-namespace Tokenaire.Controllers.Models
+namespace Tokenaire.Service.Models
 {
-    public class DtoIcoProcessKYCReview
+    public class ServiceIcoProcessKycReview
     {
         public string ModerationComment { get; set; }
         public string ClientComment { get; set; }
@@ -14,7 +15,7 @@ namespace Tokenaire.Controllers.Models
         public string ReviewRejectType { get; set; }
     }
 
-    public class DtoIcoProcessKYC
+    public class ServiceIcoProcessKyc
     {
         public string ApplicantId { get; set; }
         public string InspectionId { get; set; }
@@ -24,6 +25,6 @@ namespace Tokenaire.Controllers.Models
         public string Details { get; set; }
         public string Type { get; set; }
 
-        public DtoIcoProcessKYCReview Review { get; set; }
+        public ServiceIcoProcessKycReview Review { get; set; }
     }
 }

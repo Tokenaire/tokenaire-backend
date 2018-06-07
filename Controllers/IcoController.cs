@@ -16,7 +16,7 @@ namespace tokenaire_backend.Controllers
     [Route("api/[controller]")]
     public class IcoController : Controller
     {
-        private readonly IIcoService icoFundsService;
+        private readonly IIcoService icoService;
         private readonly IUserReferralLinkService userReferralLinkService;
         private readonly IUserService userService;
         private readonly IIpService ipService;
@@ -33,7 +33,7 @@ namespace tokenaire_backend.Controllers
             IMathService mathService,
             IConfiguration configuration)
         {
-            this.icoFundsService = icoFundsService;
+            this.icoService = icoFundsService;
             this.userReferralLinkService = userReferralLinkService;
             this.userService = userService;
             this.ipService = ipService;
@@ -46,7 +46,7 @@ namespace tokenaire_backend.Controllers
         [HttpPost]
         public async Task<IActionResult> SetRefundAddress([FromBody]DtoSetRefundAddress model) 
         {
-            await this.icoFundsService.SetRefundAddress(User.GetUserId(), model?.BTCAddress);
+            await this.icoService.SetRefundAddress(User.GetUserId(), model?.BTCAddress);
             return Ok();
         }
 
@@ -55,8 +55,8 @@ namespace tokenaire_backend.Controllers
         public async Task<IActionResult> MyDetails()
         {
             var platformUrl = this.configuration.GetValue<string>("TokenairePlatformUrl");
-            var icoDetails = await this.icoFundsService.GetMyICODetails(User.GetUserId());
-            var isIcoRunning = await this.icoFundsService.IsICORunning();
+            var icoDetails = await this.icoService.GetMyICODetails(User.GetUserId());
+            var isIcoRunning = await this.icoService.IsICORunning();
 
             return Ok(new DtoIcoMyDetailsResult() {
                 ICOBTCAddress = isIcoRunning ? icoDetails.ICOBTCAddress : null,
@@ -78,8 +78,8 @@ namespace tokenaire_backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetInfo()
         {
-            var tokensSold = await this.icoFundsService.GetAIRESold();
-            var tokensAvailable = await this.icoFundsService.GetAIRELeft();
+            var tokensSold = await this.icoService.GetAIRESold();
+            var tokensAvailable = await this.icoService.GetAIRELeft();
             var tokenSaleSupply = tokensSold + tokensAvailable;
 
             return Ok(new {
@@ -99,7 +99,7 @@ namespace tokenaire_backend.Controllers
                 return BadRequest();
             }
 
-            await this.icoFundsService.ProcessFunds();
+            await this.icoService.ProcessFunds();
             return Ok();
         }
 
@@ -121,6 +121,24 @@ namespace tokenaire_backend.Controllers
             if (key != this.settingsService.SumSubHookKey) {
                 return BadRequest();
             }
+
+            await this.icoService.ProcessKyc(new ServiceIcoProcessKyc() {
+                ApplicantId = model.ApplicantId,
+                InspectionId = model.InspectionId,
+                Success = model.Success,
+                CorrelationId = model.CorrelationId,
+                ExternalUserId = model.ExternalUserId,
+                Details = model.Details,
+                Type = model.Type,
+
+                Review = new ServiceIcoProcessKycReview() {
+                    ModerationComment = model.Review?.ModerationComment,
+                    ClientComment = model.Review?.ClientComment,
+                    ReviewAnswer = model.Review?.ReviewAnswer,
+                    RejectLabels = model.Review?.RejectLabels,
+                    ReviewRejectType = model.Review?.ReviewRejectType
+                }
+            });
             
             return Ok();
         }

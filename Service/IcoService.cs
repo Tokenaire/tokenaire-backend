@@ -31,6 +31,8 @@ namespace Tokenaire.Service
     {
         Task<string> GenerateICOBtcAddressForUser(string email);
         Task<bool> ProcessFunds();
+        Task<bool> ProcessKyc(ServiceIcoProcessKyc model);
+
         Task<long?> GetAIREWalletBalance();
 
         Task<long> GetAIRELeft();
@@ -114,6 +116,17 @@ namespace Tokenaire.Service
         public async Task<bool> IsICORunning()
         {
             return await this.GetAIRELeft() > 1000000 && this.isIcoRunning;
+        }
+
+        public async Task<bool> ProcessKyc(ServiceIcoProcessKyc model) {
+            await this.tokenaireContext.ICOKyc.AddAsync(new DatabaseIcoKyc() {
+                UserId = model.ExternalUserId,
+                IsSuccessful = model.Success,
+                Content = JsonConvert.SerializeObject(model)
+            });
+
+            await this.tokenaireContext.SaveChangesAsync();
+            return true;
         }
 
         public async Task<long?> GetAIREWalletBalance()
