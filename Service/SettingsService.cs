@@ -25,6 +25,8 @@ namespace Tokenaire.Service
 
         string SumSubApiUrl { get; }
         string SumSubApiKey { get; }
+        string SumSubHookKey { get; }
+
 
         string ChangellyApiKey { get; }
         string ChangellyApiSecret { get; }
@@ -59,6 +61,11 @@ namespace Tokenaire.Service
         public string SumSubApiKey
         {
             get => this.EnvironmentVariable("SumSubApiKey", "TOKENAIRE_SUMSUB_API_KEY");
+        }
+
+        public string SumSubHookKey
+        {
+            get => this.EnvironmentVariable("SumSubHookKey", "TOKENAIRE_SUMSUB_HOOK_KEY");
         }
 
         public string ChangellyApiKey

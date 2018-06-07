@@ -30,7 +30,7 @@ namespace tokenaire_backend.Controllers
             var serviceResult = await this.emailSubscriptionService.Create(new ServiceEmailCreateSubscription()
             {
                 Value = model?.Value,
-                Ip = this.ipService.GetClientIpXForward()
+                Ip = this.ipService.GetClientIp()
             });
 
             if (serviceResult.Errors.Count > 0) {

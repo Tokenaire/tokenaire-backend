@@ -106,9 +106,22 @@ namespace tokenaire_backend.Controllers
         [AllowAnonymous]
         [Route("ProcessKYC")]
         [HttpPost]
-        public async Task<IActionResult> ProcessKYC([FromBody]DtoIcoProcessKYC model)
+        public async Task<IActionResult> ProcessKYC([FromQuery(Name = "key")] string key, [FromBody]DtoIcoProcessKYC model)
         {
-            Console.WriteLine(this.ipService.GetClientIpXForward());
+            var requestIP = this.ipService.GetClientIp();
+            var allowedIPS = new string[]{
+                "127.0.0.1",
+                "::1"
+            };
+
+            if (!allowedIPS.Contains(requestIP)) {
+                return BadRequest();
+            }
+
+            if (key != this.settingsService.SumSubHookKey) {
+                return BadRequest();
+            }
+            
             return Ok();
         }
     }

@@ -56,7 +56,6 @@ namespace Tokenaire.Service
             services.AddSingleton<IBitGoService, BitGoService>();
             services.AddSingleton<IWavesCoinomatService, WavesCoinomatService>();
 
-
             services.AddSingleton<ILookupClient, LookupClient>((x) => new LookupClient()
             {
                 Timeout = TimeSpan.FromSeconds(5)
@@ -64,7 +63,6 @@ namespace Tokenaire.Service
 
             services.TryAddTransient<IHttpContextAccessor, HttpContextAccessor>();
             services.TryAddTransient<IIpService, IpService>();
-            services.TryAddTransient<IIpAddressParser, CustomRemoteIpRateLimitParser>();
         }
 
         public static void AddAuthenticationCustom(this IServiceCollection services, IConfiguration configuration, ISettingsService settingsService)
