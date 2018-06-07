@@ -64,6 +64,7 @@ namespace Tokenaire.Service
 
             services.TryAddTransient<IHttpContextAccessor, HttpContextAccessor>();
             services.TryAddTransient<IIpService, IpService>();
+            services.TryAddTransient<IIpAddressParser, CustomRemoteIpRateLimitParser>();
         }
 
         public static void AddAuthenticationCustom(this IServiceCollection services, IConfiguration configuration, ISettingsService settingsService)

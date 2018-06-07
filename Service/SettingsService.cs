@@ -23,6 +23,9 @@ namespace Tokenaire.Service
     {
         string JwtSecret { get; }
 
+        string SumSubApiUrl { get; }
+        string SumSubApiKey { get; }
+
         string ChangellyApiKey { get; }
         string ChangellyApiSecret { get; }
 
@@ -34,6 +37,8 @@ namespace Tokenaire.Service
         string LogglyBackendToken { get; }
 
         string WavesICOAireWalletPrivateKey { get; }
+
+        string BackendPassword { get; }
     }
 
     public class SettingsService : ISettingsService
@@ -44,6 +49,16 @@ namespace Tokenaire.Service
         public string JwtSecret
         {
             get => this.EnvironmentVariable("JwtSecret", "TOKENAIRE_JWT_SECRET");
+        }
+
+        public string SumSubApiUrl
+        {
+            get => this.EnvironmentVariable("SumSubApiUrl", "TOKENAIRE_SUMSUB_API_URL");
+        }
+
+        public string SumSubApiKey
+        {
+            get => this.EnvironmentVariable("SumSubApiKey", "TOKENAIRE_SUMSUB_API_KEY");
         }
 
         public string ChangellyApiKey
@@ -81,10 +96,14 @@ namespace Tokenaire.Service
             get => this.EnvironmentVariable("LogglyBackendToken", "TOKENAIRE_LOGGLY_BACKEND_TOKEN");
         }
 
-
         public string WavesICOAireWalletPrivateKey
         {
             get => this.EnvironmentVariable("WavesICOAireWalletPrivateKey", "TOKENAIRE_WAVESICOAIREWALLET_PRIVATEKEY");
+        }
+
+        public string BackendPassword
+        {
+            get => this.EnvironmentVariable("BackendPassword", "TOKENAIRE_BACKEND_PASSWORD");
         }
 
         public SettingsService(

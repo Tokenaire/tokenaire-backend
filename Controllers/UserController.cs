@@ -65,7 +65,7 @@ namespace tokenaire_backend.Controllers
 
                 ICOBTCAddress = ICOBTCAddress,
 
-                RegisteredFromIP = await this.ipService.GetClientIp(),
+                RegisteredFromIP = this.ipService.GetClientIpXForward(),
                 RegisteredFromReferralLinkId = model.RegisteredFromReferralLinkId,
             });
 

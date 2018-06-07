@@ -19,6 +19,7 @@ namespace tokenaire_backend.Controllers
         private readonly IIcoService icoFundsService;
         private readonly IUserReferralLinkService userReferralLinkService;
         private readonly IUserService userService;
+        private readonly IIpService ipService;
         private readonly ISettingsService settingsService;
         private readonly IMathService mathService;
         private readonly IConfiguration configuration;
@@ -27,6 +28,7 @@ namespace tokenaire_backend.Controllers
             IIcoService icoFundsService,
             IUserReferralLinkService userReferralLinkService,
             IUserService userService,
+            IIpService ipService,
             ISettingsService settingsService,
             IMathService mathService,
             IConfiguration configuration)
@@ -34,6 +36,7 @@ namespace tokenaire_backend.Controllers
             this.icoFundsService = icoFundsService;
             this.userReferralLinkService = userReferralLinkService;
             this.userService = userService;
+            this.ipService = ipService;
             this.settingsService = settingsService;
             this.mathService = mathService;
             this.configuration = configuration;
@@ -97,6 +100,15 @@ namespace tokenaire_backend.Controllers
             }
 
             await this.icoFundsService.ProcessFunds();
+            return Ok();
+        }
+
+        [AllowAnonymous]
+        [Route("ProcessKYC")]
+        [HttpPost]
+        public async Task<IActionResult> ProcessKYC([FromBody]DtoIcoProcessKYC model)
+        {
+            Console.WriteLine(this.ipService.GetClientIpXForward());
             return Ok();
         }
     }
