@@ -246,11 +246,9 @@ namespace Tokenaire.Service
                 .Select(x => x.ValueSentInAIRE)
                 .SumAsync();
 
-            var isKyced = await this.icoKycService.IsKyced(userId);
-
             return new ServiceIcoFundsMyDetailsResult()
             {
-                IsKyced = isKyced,
+                IsKyced = user.ICOKyced,
 
                 ICOBTCAddress = user.ICOBTCAddress,
                 ICOBTCRefundAddress = user.ICOBTCRefundAddress,

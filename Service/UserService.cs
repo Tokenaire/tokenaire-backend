@@ -76,6 +76,7 @@ namespace Tokenaire.Service
                 {
                     Id = dbUser.Id,
                     Address = dbUser.Address,
+                    ICOKyced = dbUser.ICOKyced,
                     ICOBTCAddress = dbUser.ICOBTCAddress,
                     ICOBTCRefundAddress = dbUser.ICOBTCRefundAddress,
                     RegisteredFromReferralLinkId = dbUser.RegistrationInfo.RegisteredFromReferralLink?.Id
@@ -87,13 +88,13 @@ namespace Tokenaire.Service
         {
             var dbUser = await this.userManager.Users
                 .Include(u => u.RegistrationInfo)
-                .Where(x => x.Id == userId)
-                .FirstAsync();
+                .FirstAsync(x => x.Id == userId);
 
             return new ServiceUser()
             {
                 Id = dbUser.Id,
                 Address = dbUser.Address,
+                ICOKyced = dbUser.ICOKyced,
                 ICOBTCAddress = dbUser.ICOBTCAddress,
                 ICOBTCRefundAddress = dbUser.ICOBTCRefundAddress,
                 RegisteredFromReferralLinkId = dbUser.RegistrationInfo.RegisteredFromReferralLink?.Id

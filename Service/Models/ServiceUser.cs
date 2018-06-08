@@ -16,5 +16,6 @@ namespace Tokenaire.Service.Models
         public string ICOBTCRefundAddress { get;  set; }
 
         public string RegisteredFromReferralLinkId { get;  set; }
+        public bool ICOKyced { get; internal set; }
     }
 }
