@@ -31,7 +31,6 @@ namespace Tokenaire.Service
     {
         Task<string> GenerateICOBtcAddressForUser(string email);
         Task<bool> ProcessFunds();
-        Task<bool> ProcessKyc(ServiceIcoProcessKyc model);
 
         Task<long?> GetAIREWalletBalance();
 
@@ -53,6 +52,7 @@ namespace Tokenaire.Service
         private readonly IUserReferralLinkService userReferralLinkService;
         private readonly IBitGoService bitGoService;
         private readonly IMemoryCache memoryCache;
+        private readonly IIcoKycService icoKycService;
         private readonly IMathService mathService;
         private readonly IUserService userService;
         private readonly ISettingsService settingsService;
@@ -70,6 +70,7 @@ namespace Tokenaire.Service
             IUserReferralLinkService userReferralLinkService,
             IBitGoService bitGoService,
             IMemoryCache memoryCache,
+            IIcoKycService icoKycService,
             IMathService mathService,
             IUserService userService,
             ISettingsService settingsService,
@@ -83,6 +84,7 @@ namespace Tokenaire.Service
             this.userReferralLinkService = userReferralLinkService;
             this.bitGoService = bitGoService;
             this.memoryCache = memoryCache;
+            this.icoKycService = icoKycService;
             this.mathService = mathService;
             this.userService = userService;
             this.settingsService = settingsService;
@@ -116,17 +118,6 @@ namespace Tokenaire.Service
         public async Task<bool> IsICORunning()
         {
             return await this.GetAIRELeft() > 1000000 && this.isIcoRunning;
-        }
-
-        public async Task<bool> ProcessKyc(ServiceIcoProcessKyc model) {
-            await this.tokenaireContext.ICOKyc.AddAsync(new DatabaseIcoKyc() {
-                UserId = model.ExternalUserId,
-                IsSuccessful = model.Success,
-                Content = JsonConvert.SerializeObject(model)
-            });
-
-            await this.tokenaireContext.SaveChangesAsync();
-            return true;
         }
 
         public async Task<long?> GetAIREWalletBalance()
@@ -255,8 +246,12 @@ namespace Tokenaire.Service
                 .Select(x => x.ValueSentInAIRE)
                 .SumAsync();
 
+            var isKyced = await this.icoKycService.IsKyced(userId);
+
             return new ServiceIcoFundsMyDetailsResult()
             {
+                IsKyced = isKyced,
+
                 ICOBTCAddress = user.ICOBTCAddress,
                 ICOBTCRefundAddress = user.ICOBTCRefundAddress,
                 ICOBTCInvestedSatoshies = ICOBTCInvestedSatoshies,

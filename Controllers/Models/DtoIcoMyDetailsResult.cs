@@ -17,5 +17,6 @@ namespace Tokenaire.Controllers.Models
 
         public long OneAireInSatoshies { get; set; }
         public long AireToReceive { get; set; }
+        public bool IsKyced { get; set; }
     }
 }

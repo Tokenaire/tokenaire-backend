@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using Tokenaire.Controllers.Models;
 using Tokenaire.Service;
 using Tokenaire.Service.Models;
@@ -17,8 +18,10 @@ namespace tokenaire_backend.Controllers
     public class IcoController : Controller
     {
         private readonly IIcoService icoService;
+        private readonly IIcoKycService icoKycService;
         private readonly IUserReferralLinkService userReferralLinkService;
         private readonly IUserService userService;
+        private readonly ISumSubApiService sumSubApiService;
         private readonly IIpService ipService;
         private readonly ISettingsService settingsService;
         private readonly IMathService mathService;
@@ -26,16 +29,20 @@ namespace tokenaire_backend.Controllers
 
         public IcoController(
             IIcoService icoFundsService,
+            IIcoKycService icoKycService,
             IUserReferralLinkService userReferralLinkService,
             IUserService userService,
+            ISumSubApiService sumSubApiService,
             IIpService ipService,
             ISettingsService settingsService,
             IMathService mathService,
             IConfiguration configuration)
         {
             this.icoService = icoFundsService;
+            this.icoKycService = icoKycService;
             this.userReferralLinkService = userReferralLinkService;
             this.userService = userService;
+            this.sumSubApiService = sumSubApiService;
             this.ipService = ipService;
             this.settingsService = settingsService;
             this.mathService = mathService;
@@ -49,6 +56,20 @@ namespace tokenaire_backend.Controllers
             await this.icoService.SetRefundAddress(User.GetUserId(), model?.BTCAddress);
             return Ok();
         }
+        
+        [Route("createSumSubAccessToken")]
+        [HttpPost]
+        public async Task<IActionResult> CreateSumSubAccessToken([FromBody]DtoSetRefundAddress model) 
+        {
+            var accessToken = await this.sumSubApiService.CreateIFrameAccessToken(User.GetUserId());
+            if (string.IsNullOrEmpty(accessToken)) {
+                return BadRequest();
+            }
+
+            return Ok(new {
+                AccessToken = accessToken
+            });
+        }
 
         [Route("mydetails")]
         [HttpGet]
@@ -58,7 +79,15 @@ namespace tokenaire_backend.Controllers
             var icoDetails = await this.icoService.GetMyICODetails(User.GetUserId());
             var isIcoRunning = await this.icoService.IsICORunning();
 
+            if (!icoDetails.IsKyced) {
+                return Ok(new {
+                    isKyced = false
+                });
+            }
+
             return Ok(new DtoIcoMyDetailsResult() {
+                IsKyced = true,
+
                 ICOBTCAddress = isIcoRunning ? icoDetails.ICOBTCAddress : null,
                 ICOBTCRefundAddress = icoDetails.ICOBTCRefundAddress,
 
@@ -106,7 +135,7 @@ namespace tokenaire_backend.Controllers
         [AllowAnonymous]
         [Route("ProcessKYC")]
         [HttpPost]
-        public async Task<IActionResult> ProcessKYC([FromQuery(Name = "key")] string key, [FromBody]DtoIcoProcessKYC model)
+        public async Task<IActionResult> ProcessKYC([FromQuery(Name = "key")] string key, [FromBody]dynamic dynamicModel)
         {
             var requestIP = this.ipService.GetClientIp();
             var allowedIPS = new string[]{
@@ -122,10 +151,17 @@ namespace tokenaire_backend.Controllers
                 return BadRequest();
             }
 
-            await this.icoService.ProcessKyc(new ServiceIcoProcessKyc() {
+            // for now,
+            // we are not interested in other types of messages.
+            if (dynamicModel.type != "INSPECTION_REVIEW_COMPLETED") {
+                return Ok();
+            }
+
+            var model = dynamicModel.ToObject(typeof(DtoIcoProcessKYC));
+            await this.icoKycService.ProcessKyc(new ServiceIcoProcessKyc() {
                 ApplicantId = model.ApplicantId,
                 InspectionId = model.InspectionId,
-                Success = model.Success,
+                IsSuccess = model.Success && model.Review?.ReviewAnswer == "GREEN",
                 CorrelationId = model.CorrelationId,
                 ExternalUserId = model.ExternalUserId,
                 Details = model.Details,

@@ -9,12 +9,13 @@ namespace Tokenaire.Database.Models
     {
         public int Id { get; set; }
 
+        public string ApplicantId { get; set; }
+
         public string UserId { get;  set; }
         public DatabaseUser user { get; set; }
 
         public bool IsSuccessful { get; set; }
         public string Content { get; set; }
-
     }
 
     public class DatabaseIcoKycConfig : IEntityTypeConfiguration<DatabaseIcoKyc>

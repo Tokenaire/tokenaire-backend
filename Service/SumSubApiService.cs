@@ -44,18 +44,19 @@ namespace Tokenaire.Service
             this.logService = logService;
         }
 
-        public async Task<string> CreateIFrameAccessToken(string userId) {
-            var response = await this.getAsync("resources/accessTokens", new List<KeyValuePair<string, string>>(){
-                new KeyValuePair<string, string>("userId", userId),
-                new KeyValuePair<string, string>("key", apiKey)
-            });
+        public async Task<string> CreateIFrameAccessToken(string userId)
+        {
+            var response = await this.postAsync($"resources/accessTokens/?userId={userId}&key={apiKey}",
+                new { });
 
-            if (response.StatusCode == HttpStatusCode.OK) {
-                dynamic content =  JsonConvert.DeserializeObject(response.Content);
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                dynamic content = JsonConvert.DeserializeObject(response.Content);
                 return content.token;
             }
 
-            await this.logService.Error(new ServiceLogError(){
+            await this.logService.Error(new ServiceLogError()
+            {
                 Message = "Unable to create iframe access token for KYC" + response.Content
             });
             return null;
@@ -66,7 +67,6 @@ namespace Tokenaire.Service
             var client = new RestClient(this.apiUrl);
             var request = new RestRequest(endpoint, Method.POST);
 
-            request.AddHeader("Authorization", $"Bearer {apiKey}");
             request.AddJsonBody(body);
 
             TaskCompletionSource<IRestResponse> taskCompletion = new TaskCompletionSource<IRestResponse>();

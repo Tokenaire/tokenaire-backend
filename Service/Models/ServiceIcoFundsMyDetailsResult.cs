@@ -7,6 +7,9 @@ namespace Tokenaire.Service.Models
 {
     public class ServiceIcoFundsMyDetailsResult
     {
+        public bool IsKyced { get; set; }
+
+
         public string ICOBTCAddress { get; set; }
         public string ICOBTCRefundAddress { get; set; }
 

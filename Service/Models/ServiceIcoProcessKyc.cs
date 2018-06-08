@@ -19,7 +19,7 @@ namespace Tokenaire.Service.Models
     {
         public string ApplicantId { get; set; }
         public string InspectionId { get; set; }
-        public bool Success { get; set; }
+        public bool IsSuccess { get; set; }
         public string CorrelationId { get; set; }
         public string ExternalUserId { get; set; }
         public string Details { get; set; }

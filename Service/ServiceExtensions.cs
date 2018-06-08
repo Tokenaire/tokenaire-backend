@@ -32,6 +32,8 @@ namespace Tokenaire.Service
 
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IIcoService, IcoService>();
+            services.AddScoped<IIcoKycService, IcoKycService>();
+
             services.AddScoped<IEmailSubscriptionService, EmailSubscriptionService>();
             services.AddScoped<IUserReferralLinkService, UserReferralLinkService>();
 
@@ -54,6 +56,8 @@ namespace Tokenaire.Service
             services.AddSingleton<IChangellyService, ChangellyService>();
             services.AddSingleton<IBitcoinService, BitcoinService>();
             services.AddSingleton<IBitGoService, BitGoService>();
+            services.AddSingleton<ISumSubApiService, SumSubApiService>();
+
             services.AddSingleton<IWavesCoinomatService, WavesCoinomatService>();
 
             services.AddSingleton<ILookupClient, LookupClient>((x) => new LookupClient()
