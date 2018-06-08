@@ -17,6 +17,7 @@ namespace Tokenaire.Database.Models
 
         public string ICOBTCAddress { get; set; }
         public string ICOBTCRefundAddress { get; set; }
+        public bool ICOKyced { get; set;}
 
         public string RegisteredFromIP { get; set; }
 

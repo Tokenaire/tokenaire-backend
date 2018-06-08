@@ -13,9 +13,10 @@ using Tokenaire.Database.Models;
 namespace tokenairebackend.Migrations
 {
     [DbContext(typeof(TokenaireContext))]
-    partial class TokenaireContextModelSnapshot : ModelSnapshot
+    [Migration("20180608163328_icokyced")]
+    partial class icokyced
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,8 +51,6 @@ namespace tokenairebackend.Migrations
                     b.Property<string>("ApplicantId");
 
                     b.Property<string>("Content");
-
-                    b.Property<DateTime>("Date");
 
                     b.Property<bool>("IsSuccessful");
 

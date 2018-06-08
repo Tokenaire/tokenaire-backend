@@ -5,6 +5,7 @@ namespace Tokenaire.Service.Enums
 {
     public enum ServiceEmailTemplateEnum {
         UserEmailVerificationStep1 = 1,
-        UserEmailRegistrationSucceededStep2 = 2
+        UserKycSuccessful = 2,
+        UserKycFailed = 3
     }
 }

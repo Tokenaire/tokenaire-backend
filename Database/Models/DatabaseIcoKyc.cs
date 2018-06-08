@@ -16,6 +16,8 @@ namespace Tokenaire.Database.Models
 
         public bool IsSuccessful { get; set; }
         public string Content { get; set; }
+
+        public DateTime Date { get; set; }
     }
 
     public class DatabaseIcoKycConfig : IEntityTypeConfiguration<DatabaseIcoKyc>

@@ -158,10 +158,11 @@ namespace tokenaire_backend.Controllers
             }
 
             var model = dynamicModel.ToObject(typeof(DtoIcoProcessKYC));
+
             await this.icoKycService.ProcessKyc(new ServiceIcoProcessKyc() {
                 ApplicantId = model.ApplicantId,
                 InspectionId = model.InspectionId,
-                IsSuccess = model.Success && model.Review?.ReviewAnswer == "GREEN",
+                IsSuccess = model.Review?.ReviewAnswer == "GREEN",
                 CorrelationId = model.CorrelationId,
                 ExternalUserId = model.ExternalUserId,
                 Details = model.Details,
