@@ -24,7 +24,8 @@ namespace Tokenaire.Service.Models
 
         public int ReferralLinkRate { get; set; }
         public double OneAireInSatoshies { get; set; }
-        public long AIREToReceive { get; set; }
+        public double DiscountRate { get; internal set; }
 
+        public long AIREToReceive { get; set; }
     }
 }

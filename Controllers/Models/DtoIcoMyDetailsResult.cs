@@ -15,10 +15,12 @@ namespace Tokenaire.Controllers.Models
         public string ReferralLinkEligibleBtc { get; set; }
         public string ReferralLinkRaisedBtc { get; set; }
 
-        public double OneAireInSatoshies { get; set; }
         public long AireToReceive { get; set; }
         public bool IsKyced { get; set; }
 
         public int ReferralLinkUsedByPeople { get; set; }
+
+        public double DiscountRate { get; internal set; }
+        public double OneAireInSatoshies { get; set; }
     }
 }

@@ -246,6 +246,8 @@ namespace Tokenaire.Service
                 .Select(x => x.ValueSentInAIRE)
                 .SumAsync();
 
+            (var oneAirePriceInSatoshies, var discountRate) = this.GetOneAIREPriceInSatoshies(user.RegisteredFromReferralLinkId);
+
             return new ServiceIcoFundsMyDetailsResult()
             {
                 IsKyced = user.ICOKyced,
@@ -261,7 +263,8 @@ namespace Tokenaire.Service
 
                 AIREToReceive = AIREToReceive,
 
-                OneAireInSatoshies = this.GetOneAIREPriceInSatoshies(user.RegisteredFromReferralLinkId)
+                OneAireInSatoshies = oneAirePriceInSatoshies,
+                DiscountRate = discountRate 
             };
         }
 
@@ -371,7 +374,7 @@ namespace Tokenaire.Service
             ServiceBitGoWalletTransfer receivedTransfer,
             ServiceBitGoWalletTransferEntry transferEntry)
         {
-            var oneAirePriceInSatoshies = this.GetOneAIREPriceInSatoshies(user.RegisteredFromReferralLinkId);
+            (var oneAirePriceInSatoshies, var discountRate) = this.GetOneAIREPriceInSatoshies(user.RegisteredFromReferralLinkId);
             var valueInAIRE = (long)(transferEntry.Value / oneAirePriceInSatoshies);
             if (valueInAIRE < 1)
             {
@@ -432,7 +435,7 @@ namespace Tokenaire.Service
             };
         }
 
-        private double GetOneAIREPriceInSatoshies(string registeredFromReferralLinkId)
+        private (double OneAirePriceInSatoshies, double DiscountRate) GetOneAIREPriceInSatoshies(string registeredFromReferralLinkId)
         {
             var isPresale = true;
             var oneAireInSatoshiesNormal = 16;
@@ -441,7 +444,18 @@ namespace Tokenaire.Service
             var oneAireInSatoshies = isPresale ? oneAireInSatoshiesPresale : oneAireInSatoshiesNormal;
             var oneAireInSatoshiesRegisteredFromReferralLink = oneAireInSatoshies / 1.05;
 
-            return string.IsNullOrEmpty(registeredFromReferralLinkId) ? oneAireInSatoshies : oneAireInSatoshiesRegisteredFromReferralLink;
+            var oneAireInSatoshiesFinal = Math.Round(
+                string.IsNullOrEmpty(registeredFromReferralLinkId) ? 
+                    oneAireInSatoshies : 
+                    oneAireInSatoshiesRegisteredFromReferralLink,
+                1);
+
+            var discountRate = Math.Round((oneAireInSatoshiesNormal - oneAireInSatoshiesFinal) / oneAireInSatoshiesNormal * 100, 1);
+
+            return (
+                oneAireInSatoshiesFinal,
+                discountRate
+            );
         }
     }
 }

@@ -111,9 +111,10 @@ namespace tokenaire_backend.Controllers
                 ReferralLinkRaisedBtc = this.mathService.ConvertSatoshiesToBTCFormatted(icoDetails.ReferralLinkRaisedBtcSatoshies),
                 ReferralLinkEligibleBtc = this.mathService.ConvertSatoshiesToBTCFormatted(icoDetails.ReferralLinkEligibleBtcSatoshies),
 
-                OneAireInSatoshies = Math.Round(icoDetails.OneAireInSatoshies, 1),
+                OneAireInSatoshies = icoDetails.OneAireInSatoshies,
 
-                AireToReceive = icoDetails.AIREToReceive
+                AireToReceive = icoDetails.AIREToReceive,
+                DiscountRate =  icoDetails.DiscountRate
             });
         }
 
