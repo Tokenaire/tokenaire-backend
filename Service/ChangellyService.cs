@@ -21,6 +21,7 @@ using Tokenaire.Database;
 using Tokenaire.Database.Models;
 using Tokenaire.Service.Models;
 using Tokenaire.Service.Models.Models;
+using tokenaire_backend.Extensions;
 using WavesCS;
 
 namespace Tokenaire.Service
@@ -52,7 +53,7 @@ namespace Tokenaire.Service
 
             HMACSHA512 hmac = new HMACSHA512(U8.GetBytes(apiSecret));
             byte[] hashmessage = hmac.ComputeHash(U8.GetBytes(message));
-            string sign = ToHexString(hashmessage);
+            string sign = hashmessage.ToHexString();
 
             request.AddHeader("api-key", apiKey);
             request.AddHeader("sign", sign);
@@ -60,16 +61,6 @@ namespace Tokenaire.Service
             TaskCompletionSource<IRestResponse> taskCompletion = new TaskCompletionSource<IRestResponse>();
             RestRequestAsyncHandle handle = client.ExecuteAsync(request, r => taskCompletion.SetResult(r));
             return (RestResponse)(await taskCompletion.Task);
-        }
-
-        private string ToHexString(byte[] array)
-        {
-            StringBuilder hex = new StringBuilder(array.Length * 2);
-            foreach (byte b in array)
-            {
-                hex.AppendFormat("{0:x2}", b);
-            }
-            return hex.ToString();
         }
 
         public class ChangellyApiInput
