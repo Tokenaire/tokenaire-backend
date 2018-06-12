@@ -15,13 +15,16 @@ namespace Tokenaire.Service.Models
 
 
         public string ReferralLinkUrl { get; set; }
+        public int ReferralLinkUsedByPeople { get; set; }
+
         public long ReferralLinkRaisedBtcSatoshies { get; set; }
         public long ReferralLinkEligibleBtcSatoshies { get; set; }
         public long ICOBTCInvestedSatoshies { get; set; }
 
 
         public int ReferralLinkRate { get; set; }
-        public long OneAireInSatoshies { get; set; }
+        public double OneAireInSatoshies { get; set; }
         public long AIREToReceive { get; set; }
+
     }
 }

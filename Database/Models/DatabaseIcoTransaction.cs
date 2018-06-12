@@ -24,7 +24,8 @@ namespace Tokenaire.Database.Models
 
         public long ValueReceivedInSatoshies { get;  set; }
         public long ValueSentInAIRE { get; set; }
-        public long OneAirePriceInSatoshies { get;  set; }
+
+        public double OneAirePriceInSatoshies { get;  set; }
 
         public string RegisteredFromReferralLinkId { get; set; }
         public DatabaseUserReferralLink RegisteredFromReferralLink { get; set; }

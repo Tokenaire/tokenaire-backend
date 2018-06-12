@@ -104,13 +104,14 @@ namespace tokenaire_backend.Controllers
 
                 ICOBTCAddress = isIcoRunning ? icoDetails.ICOBTCAddress : null,
                 ICOBTCRefundAddress = icoDetails.ICOBTCRefundAddress,
-
                 ICOBTCInvested = this.mathService.ConvertSatoshiesToBTCFormatted(icoDetails.ICOBTCInvestedSatoshies),
+
                 ReferralLinkUrl = icoDetails.ReferralLinkUrl,
+                ReferralLinkUsedByPeople = icoDetails.ReferralLinkUsedByPeople,
                 ReferralLinkRaisedBtc = this.mathService.ConvertSatoshiesToBTCFormatted(icoDetails.ReferralLinkRaisedBtcSatoshies),
                 ReferralLinkEligibleBtc = this.mathService.ConvertSatoshiesToBTCFormatted(icoDetails.ReferralLinkEligibleBtcSatoshies),
 
-                OneAireInSatoshies = icoDetails.OneAireInSatoshies,
+                OneAireInSatoshies = Math.Round(icoDetails.OneAireInSatoshies, 1),
 
                 AireToReceive = icoDetails.AIREToReceive
             });

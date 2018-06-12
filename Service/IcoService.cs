@@ -254,6 +254,7 @@ namespace Tokenaire.Service
                 ICOBTCRefundAddress = user.ICOBTCRefundAddress,
                 ICOBTCInvestedSatoshies = ICOBTCInvestedSatoshies,
                 ReferralLinkUrl = referralLinkDetails.ReferralLinkUrl,
+                ReferralLinkUsedByPeople = referralLinkDetails.ReferralLinkUsedByPeople,
                 ReferralLinkRate = this.referralLinkRateInPercentage,
                 ReferralLinkRaisedBtcSatoshies = referralLinkDetails.ReferralLinkRaisedBtcSatoshies,
                 ReferralLinkEligibleBtcSatoshies = referralLinkDetails.ReferralLinkEligibleBtcSatoshies,
@@ -264,7 +265,7 @@ namespace Tokenaire.Service
             };
         }
 
-        private async Task<(long ReferralLinkRaisedBtcSatoshies, long ReferralLinkEligibleBtcSatoshies, string ReferralLinkUrl)> GetReferralLinkDetails(string userId)
+        private async Task<(long ReferralLinkRaisedBtcSatoshies, long ReferralLinkEligibleBtcSatoshies, string ReferralLinkUrl, int ReferralLinkUsedByPeople)> GetReferralLinkDetails(string userId)
         {
             var platformUrl = this.configuration.GetValue<string>("TokenairePlatformUrl");
             var referralLinkId = await this
@@ -281,6 +282,10 @@ namespace Tokenaire.Service
                 .Select(x => x.ValueReceivedInSatoshies)
                 .SumAsync();
 
+            var referralLinkUsedByPeople = await this.tokenaireContext.Users
+                .Where(x => x.RegistrationInfo.RegisteredFromReferralLinkId == referralLinkId)
+                .CountAsync();
+
             var referralLinkUrl = $"{platformUrl}/?referralLinkId={referralLinkId}";
             var referralLinkEligibleBtcSatoshies = referralLinkRaisedBtcSatoshies / 100 * this.referralLinkRateInPercentage;
             if (this.mathService.ConvertSatoshiesToBTC(referralLinkRaisedBtcSatoshies) < this.referralLinkMinimumRaisedBtc)
@@ -288,7 +293,11 @@ namespace Tokenaire.Service
                 referralLinkEligibleBtcSatoshies = 0;
             }
 
-            return (referralLinkRaisedBtcSatoshies, referralLinkEligibleBtcSatoshies, referralLinkUrl);
+            return (
+                referralLinkRaisedBtcSatoshies, 
+                referralLinkEligibleBtcSatoshies, 
+                referralLinkUrl,
+                referralLinkUsedByPeople);
         }
 
         private async Task<bool> ProcessExistingIcoTransaction(
@@ -423,13 +432,16 @@ namespace Tokenaire.Service
             };
         }
 
-        private long GetOneAIREPriceInSatoshies(string registeredFromReferralLinkId)
+        private double GetOneAIREPriceInSatoshies(string registeredFromReferralLinkId)
         {
-            var oneAireInSatoshiesNormal = 80;
-            var oneAireInSatoshiesReferralLink = 60;
-            return string.IsNullOrEmpty(registeredFromReferralLinkId) ?
-                oneAireInSatoshiesNormal :
-                oneAireInSatoshiesReferralLink;
+            var isPresale = true;
+            var oneAireInSatoshiesNormal = 16;
+            var oneAireInSatoshiesPresale = oneAireInSatoshiesNormal / 1.2;
+
+            var oneAireInSatoshies = isPresale ? oneAireInSatoshiesPresale : oneAireInSatoshiesNormal;
+            var oneAireInSatoshiesRegisteredFromReferralLink = oneAireInSatoshies / 1.05;
+
+            return string.IsNullOrEmpty(registeredFromReferralLinkId) ? oneAireInSatoshies : oneAireInSatoshiesRegisteredFromReferralLink;
         }
     }
 }

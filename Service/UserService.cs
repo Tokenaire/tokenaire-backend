@@ -97,7 +97,7 @@ namespace Tokenaire.Service
                 ICOKyced = dbUser.ICOKyced,
                 ICOBTCAddress = dbUser.ICOBTCAddress,
                 ICOBTCRefundAddress = dbUser.ICOBTCRefundAddress,
-                RegisteredFromReferralLinkId = dbUser.RegistrationInfo.RegisteredFromReferralLink?.Id
+                RegisteredFromReferralLinkId = dbUser.RegistrationInfo.RegisteredFromReferralLinkId
             };
         }
 
