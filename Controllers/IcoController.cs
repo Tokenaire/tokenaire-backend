@@ -15,6 +15,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Tokenaire.Controllers.Models;
 using Tokenaire.Service;
+using Tokenaire.Service.Enums;
 using Tokenaire.Service.Models;
 using tokenaire_backend.Extensions;
 
@@ -88,21 +89,50 @@ namespace tokenaire_backend.Controllers
         {
             var platformUrl = this.configuration.GetValue<string>("TokenairePlatformUrl");
             var icoDetails = await this.icoService.GetMyICODetails(User.GetUserId());
-            var isIcoRunning = await this.icoService.IsICORunning();
+            var icoStatus = await this.icoService.GetICOStatus();
 
-            if (!icoDetails.IsKyced)
-            {
-                return Ok(new
+            if (icoStatus == ServiceIcoStatus.Finished) {
+                return Ok(new DtoIcoMyDetailsResult()
                 {
-                    isKyced = false
+                    ICOStatus = (int)icoStatus
                 });
             }
 
+            // if user is not KYCED
+            // we'll not return anything to him yet.
+            if (!icoDetails.IsKyced)
+            {
+                return Ok(new DtoIcoMyDetailsResult()
+                {
+                    IsKyced = false,
+                    ICOStatus = (int)icoStatus
+                });
+            }
+
+            // ICO not yet started,
+            // however user can see referral link status.
+            if (icoStatus == ServiceIcoStatus.NotYetStarted)
+            {
+                return Ok(new DtoIcoMyDetailsResult()
+                {
+                    IsKyced = true,
+                    ICOStatus = (int)icoStatus,
+
+                    ReferralLinkUrl = icoDetails.ReferralLinkUrl,
+                    ReferralLinkUsedByPeople = icoDetails.ReferralLinkUsedByPeople,
+                    ReferralLinkRaisedBtc = this.mathService.ConvertSatoshiesToBTCFormatted(icoDetails.ReferralLinkRaisedBtcSatoshies),
+                    ReferralLinkEligibleBtc = this.mathService.ConvertSatoshiesToBTCFormatted(icoDetails.ReferralLinkEligibleBtcSatoshies),
+                });
+            }
+
+            // ICO running & KYCED
+            // send out all the details
             return Ok(new DtoIcoMyDetailsResult()
             {
                 IsKyced = true,
+                ICOStatus = (int)icoStatus,
 
-                ICOBTCAddress = isIcoRunning ? icoDetails.ICOBTCAddress : null,
+                ICOBTCAddress = icoDetails.ICOBTCAddress,
                 ICOBTCRefundAddress = icoDetails.ICOBTCRefundAddress,
                 ICOBTCInvested = this.mathService.ConvertSatoshiesToBTCFormatted(icoDetails.ICOBTCInvestedSatoshies),
 
@@ -114,7 +144,7 @@ namespace tokenaire_backend.Controllers
                 OneAireInSatoshies = icoDetails.OneAireInSatoshies,
 
                 AireToReceive = icoDetails.AIREToReceive,
-                DiscountRate =  icoDetails.DiscountRate
+                DiscountRate = icoDetails.DiscountRate
             });
         }
 
@@ -182,7 +212,8 @@ namespace tokenaire_backend.Controllers
                 var hashmessage = hmac.ComputeHash(Encoding.UTF8.GetBytes(rawData));
                 var digestValidation = hashmessage.ToHexString();
 
-                if (digest != digestValidation) {
+                if (digest != digestValidation)
+                {
                     return BadRequest("digest validation invalid");
                 }
 

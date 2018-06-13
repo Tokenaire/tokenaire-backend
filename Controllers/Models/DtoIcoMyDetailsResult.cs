@@ -10,6 +10,7 @@ namespace Tokenaire.Controllers.Models
         public string ICOBTCRefundAddress { get; set; }
 
         public string ICOBTCInvested { get; set; }
+        public int ICOStatus { get; set; }
 
         public string ReferralLinkUrl { get; set; }
         public string ReferralLinkEligibleBtc { get; set; }
@@ -20,7 +21,7 @@ namespace Tokenaire.Controllers.Models
 
         public int ReferralLinkUsedByPeople { get; set; }
 
-        public double DiscountRate { get; internal set; }
+        public double DiscountRate { get; set; }
         public double OneAireInSatoshies { get; set; }
     }
 }

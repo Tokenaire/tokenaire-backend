@@ -21,6 +21,7 @@ using org.whispersystems.curve25519;
 using RestSharp;
 using Tokenaire.Database;
 using Tokenaire.Database.Models;
+using Tokenaire.Service.Enums;
 using Tokenaire.Service.Models;
 using Tokenaire.Service.Models.Models;
 using WavesCS;
@@ -36,8 +37,7 @@ namespace Tokenaire.Service
 
         Task<long> GetAIRELeft();
         Task<long> GetAIRESold();
-
-        Task<bool> IsICORunning();
+        Task<ServiceIcoStatus> GetICOStatus();
 
         Task<ServiceIcoFundsMyDetailsResult> GetMyICODetails(string userId);
         Task<bool> SetRefundAddress(string v, string bTCAddress);
@@ -62,7 +62,6 @@ namespace Tokenaire.Service
         private readonly int referralLinkRateInPercentage = 5;
 
         private readonly long aireTokenSaleSupply = 4200000000;
-        private readonly bool isIcoRunning = true;
 
         public IcoService(
             IConfiguration configuration,
@@ -115,9 +114,19 @@ namespace Tokenaire.Service
             return this.aireTokenSaleSupply - await this.GetAIRESold();
         }
 
-        public async Task<bool> IsICORunning()
+        public async Task<ServiceIcoStatus> GetICOStatus()
         {
-            return await this.GetAIRELeft() > 1000000 && this.isIcoRunning;
+            var icoStatus = ServiceIcoStatus.Finished;
+
+            if (icoStatus == ServiceIcoStatus.Running) {
+                if (await this.GetAIRELeft() < 1000000) {
+                    return ServiceIcoStatus.Finished;
+                }
+
+                return ServiceIcoStatus.Running;
+            }
+
+            return icoStatus;
         }
 
         public async Task<long?> GetAIREWalletBalance()
