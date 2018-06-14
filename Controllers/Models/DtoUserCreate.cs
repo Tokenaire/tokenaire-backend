@@ -16,5 +16,6 @@ namespace Tokenaire.Controllers.Models
         public string Signature { get; set; }
 
         public string RegisteredFromReferralLinkId { get; set; }
+        public string CaptchaResponse { get; set; }
     }
 }

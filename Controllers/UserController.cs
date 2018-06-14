@@ -10,6 +10,7 @@ using Tokenaire.Controllers.Models;
 using Tokenaire.Database;
 using Tokenaire.Database.Models;
 using Tokenaire.Service;
+using Tokenaire.Service.Enums;
 using Tokenaire.Service.Models;
 using tokenaire_backend.Extensions;
 
@@ -20,17 +21,20 @@ namespace tokenaire_backend.Controllers
     {
         private readonly IUserService _userService;
         private readonly IIcoService icoFundsService;
+        private readonly IRecaptchaService recaptchaService;
         private readonly IWavesCoinomatService wavesCoinomatService;
         private readonly IIpService ipService;
 
         public UserController(
             IUserService userService,
             IIcoService icoFundsService,
+            IRecaptchaService recaptchaService,
             IWavesCoinomatService wavesCoinomatService,
             IIpService ipService)
         {
             _userService = userService;
             this.icoFundsService = icoFundsService;
+            this.recaptchaService = recaptchaService;
             this.wavesCoinomatService = wavesCoinomatService;
             this.ipService = ipService;
         }
@@ -38,8 +42,10 @@ namespace tokenaire_backend.Controllers
         [AllowAnonymous]
         [HttpGet]
         [Route("isEmailTaken")]
-        public async Task<IActionResult> IsEmailTaken(string email) {
-            if (string.IsNullOrEmpty(email)) {
+        public async Task<IActionResult> IsEmailTaken(string email)
+        {
+            if (string.IsNullOrEmpty(email))
+            {
                 return BadRequest();
             }
 
@@ -53,6 +59,17 @@ namespace tokenaire_backend.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody]DtoUserCreate model)
         {
+            if (!await this.recaptchaService.IsValidCaptchaResponse(model.CaptchaResponse, this.ipService.GetClientIp()))
+            {
+                return this.BadRequestFromErrors(new List<ServiceGenericError>() {
+                        new ServiceGenericError()
+                        {
+                            Code = ServiceGenericErrorEnum.InvalidCaptcha,
+                            Message = "Invalid captcha"
+                        }
+                    });
+            }
+
             var ICOBTCAddress = await this.icoFundsService.GenerateICOBtcAddressForUser(model?.Email);
             var serviceResult = await _userService.CreateAsync(new ServiceUserCreate()
             {
@@ -75,22 +92,26 @@ namespace tokenaire_backend.Controllers
                 return this.BadRequestFromErrors(serviceResult.Errors);
             }
 
-            return Ok(new DtoUserCreateResult() {});
+            return Ok(new DtoUserCreateResult() { });
         }
 
         [Route("enableTwoFactorAuth")]
         [HttpPost]
-        public async Task<IActionResult> EnableTwoFactorAuth([FromBody]DtoEnableTwoFactorAuth model) {
-            if (model == null) {
+        public async Task<IActionResult> EnableTwoFactorAuth([FromBody]DtoEnableTwoFactorAuth model)
+        {
+            if (model == null)
+            {
                 return BadRequest("model is null");
             }
 
-            if (await this._userService.IsTwoFactorAuthEnabled(User.GetUserId())) {
+            if (await this._userService.IsTwoFactorAuthEnabled(User.GetUserId()))
+            {
                 return BadRequest("two way auth already enabled");
             }
 
             var result = await this._userService.EnableTwoFactorAuth(User.GetUserId());
-            if (!result) {
+            if (!result)
+            {
                 return BadRequest("could not enable two way auth");
             }
 
@@ -99,17 +120,21 @@ namespace tokenaire_backend.Controllers
 
         [Route("disableTwoFactorAuth")]
         [HttpPost]
-        public async Task<IActionResult> DisableTwoFactorAuth([FromBody]DtoDisableTwoFactorAuth model) {
-            if (model == null) {
+        public async Task<IActionResult> DisableTwoFactorAuth([FromBody]DtoDisableTwoFactorAuth model)
+        {
+            if (model == null)
+            {
                 return BadRequest("model is null");
             }
 
-            if (!await this._userService.IsTwoFactorAuthEnabled(User.GetUserId())) {
+            if (!await this._userService.IsTwoFactorAuthEnabled(User.GetUserId()))
+            {
                 return BadRequest("two way auth already disabled");
             }
 
             var result = await this._userService.DisableTwoFactorAuth(User.GetUserId());
-            if (!result) {
+            if (!result)
+            {
                 return BadRequest("could not disable two way auth");
             }
 
@@ -127,7 +152,8 @@ namespace tokenaire_backend.Controllers
                 Code = model.Code
             });
 
-            return Ok(new DtoUserVerifyResult() {
+            return Ok(new DtoUserVerifyResult()
+            {
                 IsVerified = isVerified
             });
         }
@@ -148,7 +174,8 @@ namespace tokenaire_backend.Controllers
                 return this.BadRequestFromErrors(serviceResult.Errors);
             }
 
-            return Ok(new DtoUserLoginResult() {
+            return Ok(new DtoUserLoginResult()
+            {
                 AuthToken = serviceResult.Jwt.AuthToken,
                 EncryptedSeed = serviceResult.EncryptedSeed,
                 IsFirstTimeLogging = serviceResult.IsFirstTimeLogging

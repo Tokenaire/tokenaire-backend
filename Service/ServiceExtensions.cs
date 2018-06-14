@@ -44,6 +44,7 @@ namespace Tokenaire.Service
             services.AddSingleton<ICurve25519Service, Curve25519Service>();
             services.AddSingleton<IEmailService, EmailService>();
             services.AddSingleton<IMathService, MathService>();
+            services.AddSingleton<IRecaptchaService, RecaptchaService>();
 
 
             services.AddSingleton<IWavesRootNodeService, WavesRootNodeService>();

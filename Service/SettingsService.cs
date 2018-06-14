@@ -42,6 +42,7 @@ namespace Tokenaire.Service
         string WavesICOAireWalletPrivateKey { get; }
 
         string BackendPassword { get; }
+        string ReCaptchaKey { get; }
     }
 
     public class SettingsService : ISettingsService
@@ -117,6 +118,11 @@ namespace Tokenaire.Service
         public string BackendPassword
         {
             get => this.EnvironmentVariable("BackendPassword", "TOKENAIRE_BACKEND_PASSWORD");
+        }
+
+        public string ReCaptchaKey
+        {
+            get => this.EnvironmentVariable("ReCaptchaKey", "TOKENAIRE_GOOGLERECAPTCHA");
         }
 
         public SettingsService(

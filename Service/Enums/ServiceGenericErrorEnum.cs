@@ -14,6 +14,7 @@ namespace Tokenaire.Service.Enums
         InvalidAddress = 8,
         IpAlreadyRegisteredWait = 9,
         EmailNeedsConfirming = 10,
-        LockedOut = 11
+        LockedOut = 11,
+        InvalidCaptcha = 12
     }
 }
