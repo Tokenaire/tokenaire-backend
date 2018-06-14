@@ -1,0 +1,11 @@
+using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace Tokenaire.Controllers.Models
+{
+    public class DtoEnableTwoFactorAuth
+    {
+        public string Provider { get; set; }
+    }
+}

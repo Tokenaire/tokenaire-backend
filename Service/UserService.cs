@@ -28,10 +28,14 @@ namespace Tokenaire.Service
         Task<ServiceUserCreateResult> CreateAsync(ServiceUserCreate model);
         Task<ServiceUserLoginResult> LoginAsync(ServiceUserLogin model);
 
+        Task<bool> IsTwoFactorAuthEnabled(string userId);
 
         Task<bool> IsEmailTakenAsync(string email);
         Task<bool> SendEmailConfirmationAsync(string email);
         Task<bool> VerifyAsync(ServiceUserVerify serviceUserVerify);
+
+        Task<bool> EnableTwoFactorAuth(string userId);
+        Task<bool> DisableTwoFactorAuth(string userId);
     }
 
     public class UserService : IUserService
@@ -62,6 +66,26 @@ namespace Tokenaire.Service
             this.wavesAddressesNodeService = wavesAddressesNodeService;
             this.userReferralLinkService = userReferralLinkService;
             this.tokenaireContext = tokenaireContext;
+        }
+
+        public async Task<bool> IsTwoFactorAuthEnabled(string userId)
+        {
+            var user = await this.userManager.FindByIdAsync(userId);
+            return await this.userManager.GetTwoFactorEnabledAsync(user);
+        }
+
+        public async Task<bool> EnableTwoFactorAuth(string userId)
+        {
+            var user = await this.userManager.FindByIdAsync(userId);
+            var result = await this.userManager.SetTwoFactorEnabledAsync(user, true);
+            return result.Succeeded;
+        }
+
+        public async Task<bool> DisableTwoFactorAuth(string userId)
+        {
+            var user = await this.userManager.FindByIdAsync(userId);
+            var result = await this.userManager.SetTwoFactorEnabledAsync(user, false);
+            return result.Succeeded;
         }
 
         public async Task<List<ServiceUser>> GetUsers()
@@ -270,22 +294,51 @@ namespace Tokenaire.Service
             }
 
             var email = model.Email?.ToLowerInvariant();
-            var identity = await this.GetClaimsIdentityAsync(email, model.HashedPassword);
-            if (identity == null)
+            var invalidEmailOrPasswordResult = new ServiceUserLoginResult()
             {
-                return new ServiceUserLoginResult()
-                {
-                    Errors = new List<ServiceGenericError>() {
+                Errors = new List<ServiceGenericError>() {
                         new ServiceGenericError()
                         {
                             Code = ServiceGenericErrorEnum.InvalidEmailOrPassword,
                             Message = "Invalid email or password"
                         }
                     }
+            };
+
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(model.HashedPassword))
+            {
+                return invalidEmailOrPasswordResult;
+            }
+
+            var user = await this.userManager.FindByNameAsync(email);
+            if (user == null)
+            {
+                return invalidEmailOrPasswordResult;
+            }
+
+            if (await this.userManager.IsLockedOutAsync(user))
+            {
+                return new ServiceUserLoginResult()
+                {
+                    Errors = new List<ServiceGenericError>() {
+                        new ServiceGenericError()
+                        {
+                            Code = ServiceGenericErrorEnum.LockedOut,
+                            Message = "Locked out"
+                        }
+                    }
                 };
             }
 
-            var user = await this.userManager.FindByEmailAsync(email);
+            if (!await this.userManager.CheckPasswordAsync(user, model.HashedPassword))
+            {
+                await this.userManager.AccessFailedAsync(user);
+                return invalidEmailOrPasswordResult;
+            }
+
+            await this.userManager.ResetAccessFailedCountAsync(user);
+
+            var identity = await jwtService.GenerateClaimsIdentity(email, user.Id);
             var emailConfirmed = await this.userManager.IsEmailConfirmedAsync(user);
             var isFirstTimeLogging = user.LastLoginDate == null;
             if (!emailConfirmed)
@@ -374,23 +427,6 @@ namespace Tokenaire.Service
             var encodedEmail = Base58.Encode(Encoding.UTF8.GetBytes(user.Email));
 
             return $"{callbackUrl}/verify?code={encodedCode}&email={encodedEmail}";
-        }
-
-        private async Task<ClaimsIdentity> GetClaimsIdentityAsync(string userName, string password)
-        {
-            if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password))
-                return null;
-
-            var userToVerify = await this.userManager.FindByNameAsync(userName);
-            if (userToVerify == null) return null;
-
-            if (
-                await this.userManager.CheckPasswordAsync(userToVerify, password))
-            {
-                return await jwtService.GenerateClaimsIdentity(userName, userToVerify.Id);
-            }
-
-            return null;
         }
     }
 }

@@ -11,6 +11,7 @@ using Tokenaire.Database;
 using Tokenaire.Database.Models;
 using Tokenaire.Service;
 using Tokenaire.Service.Models;
+using tokenaire_backend.Extensions;
 
 namespace tokenaire_backend.Controllers
 {
@@ -75,6 +76,44 @@ namespace tokenaire_backend.Controllers
             }
 
             return Ok(new DtoUserCreateResult() {});
+        }
+
+        [Route("enableTwoFactorAuth")]
+        [HttpPost]
+        public async Task<IActionResult> EnableTwoFactorAuth([FromBody]DtoEnableTwoFactorAuth model) {
+            if (model == null) {
+                return BadRequest("model is null");
+            }
+
+            if (await this._userService.IsTwoFactorAuthEnabled(User.GetUserId())) {
+                return BadRequest("two way auth already enabled");
+            }
+
+            var result = await this._userService.EnableTwoFactorAuth(User.GetUserId());
+            if (!result) {
+                return BadRequest("could not enable two way auth");
+            }
+
+            return Ok();
+        }
+
+        [Route("disableTwoFactorAuth")]
+        [HttpPost]
+        public async Task<IActionResult> DisableTwoFactorAuth([FromBody]DtoDisableTwoFactorAuth model) {
+            if (model == null) {
+                return BadRequest("model is null");
+            }
+
+            if (!await this._userService.IsTwoFactorAuthEnabled(User.GetUserId())) {
+                return BadRequest("two way auth already disabled");
+            }
+
+            var result = await this._userService.DisableTwoFactorAuth(User.GetUserId());
+            if (!result) {
+                return BadRequest("could not disable two way auth");
+            }
+
+            return Ok();
         }
 
         [AllowAnonymous]
