@@ -6,5 +6,6 @@ namespace Tokenaire.Controllers.Models
 {
     public class DtoDisableTwoFactorAuth
     {
+        public string VerificationCode { get; set; }
     }
 }

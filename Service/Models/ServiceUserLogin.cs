@@ -10,6 +10,8 @@ namespace Tokenaire.Service.Models
         public string Email { get; set; }
         public string HashedPassword { get; set; }
 
+        public string VerificationCode { get; set; }
+
         public List<ServiceGenericError> GetErrors()
         {
             var errors = new List<ServiceGenericError>();

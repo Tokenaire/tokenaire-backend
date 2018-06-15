@@ -5,13 +5,16 @@ using System.Net;
 using System.Net.Mail;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using DnsClient;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using org.whispersystems.curve25519;
+using QRCoder;
 using Tokenaire.Database;
 using Tokenaire.Database.Models;
 using Tokenaire.Service.Enums;
@@ -22,6 +25,7 @@ namespace Tokenaire.Service
 {
     public interface IUserService
     {
+        Task<ServiceAuthenticatorKeyResult> GetAuthenticatorKeyAsync(string userId);
         Task<ServiceUser> GetUser(string userId);
         Task<List<ServiceUser>> GetUsers();
 
@@ -34,13 +38,15 @@ namespace Tokenaire.Service
         Task<bool> SendEmailConfirmationAsync(string email);
         Task<bool> VerifyAsync(ServiceUserVerify serviceUserVerify);
 
-        Task<bool> EnableTwoFactorAuth(string userId);
-        Task<bool> DisableTwoFactorAuth(string userId);
+        Task<bool> SetTwoFactorAuth(string userId, string verificationCode, bool enabled);
     }
 
     public class UserService : IUserService
     {
+        private const string AuthenticatorUriFormat = "otpauth://totp/{0}:{1}?secret={2}&issuer={0}&digits=6";
+
         private readonly UserManager<DatabaseUser> userManager;
+        private readonly UrlEncoder urlEncoder;
         private readonly IEmailService emailService;
         private readonly IJwtService jwtService;
         private readonly IConfiguration configuration;
@@ -50,6 +56,7 @@ namespace Tokenaire.Service
         private readonly TokenaireContext tokenaireContext;
 
         public UserService(UserManager<DatabaseUser> userManager,
+            UrlEncoder urlEncoder,
             IEmailService emailService,
             IJwtService jwtService,
             IConfiguration configuration,
@@ -59,6 +66,7 @@ namespace Tokenaire.Service
             TokenaireContext tokenaireContext)
         {
             this.userManager = userManager;
+            this.urlEncoder = urlEncoder;
             this.emailService = emailService;
             this.jwtService = jwtService;
             this.configuration = configuration;
@@ -74,18 +82,44 @@ namespace Tokenaire.Service
             return await this.userManager.GetTwoFactorEnabledAsync(user);
         }
 
-        public async Task<bool> EnableTwoFactorAuth(string userId)
+        public async Task<bool> SetTwoFactorAuth(string userId, string verificationCode, bool enabled)
         {
             var user = await this.userManager.FindByIdAsync(userId);
-            var result = await this.userManager.SetTwoFactorEnabledAsync(user, true);
+            var normalizedVerificationCode = verificationCode.Replace(" ", string.Empty).Replace("-", string.Empty);
+            var tokenProvider = this.userManager.Options.Tokens.AuthenticatorTokenProvider;
+
+            if (!await this.userManager.VerifyTwoFactorTokenAsync(user, tokenProvider, normalizedVerificationCode))
+            {
+                return false;
+            }
+
+            var result = await this.userManager.SetTwoFactorEnabledAsync(user, enabled);
             return result.Succeeded;
         }
 
-        public async Task<bool> DisableTwoFactorAuth(string userId)
+        public async Task<ServiceAuthenticatorKeyResult> GetAuthenticatorKeyAsync(string userId)
         {
             var user = await this.userManager.FindByIdAsync(userId);
-            var result = await this.userManager.SetTwoFactorEnabledAsync(user, false);
-            return result.Succeeded;
+            var unformattedKey = await this.userManager.GetAuthenticatorKeyAsync(user);
+
+            if (string.IsNullOrEmpty(unformattedKey))
+            {
+                await this.userManager.ResetAuthenticatorKeyAsync(user);
+                unformattedKey = await this.userManager.GetAuthenticatorKeyAsync(user);
+            }
+
+            var authenticatorUri = GenerateQrCodeUri(user.Email, unformattedKey);
+
+            var qrGenerator = new QRCodeGenerator();
+            var qrCodeData = qrGenerator.CreateQrCode(authenticatorUri, QRCodeGenerator.ECCLevel.Q);
+            var qrCode = new Base64QRCode(qrCodeData);
+            var qrCodeImageAsBase64 = qrCode.GetGraphic(20);
+
+            return new ServiceAuthenticatorKeyResult()
+            {
+                Key = FormatKey(unformattedKey),
+                KeyAsImage = qrCodeImageAsBase64
+            };
         }
 
         public async Task<List<ServiceUser>> GetUsers()
@@ -355,10 +389,48 @@ namespace Tokenaire.Service
                 };
             }
 
+            if (user.TwoFactorEnabled)
+            {
+                var tokenProvider = this.userManager.Options.Tokens.AuthenticatorTokenProvider;
+                var verificationCode = model.VerificationCode != null ? model.VerificationCode : "";
+                var normalizedVerificationCode = verificationCode
+                    .Replace(" ", string.Empty)
+                    .Replace("-", string.Empty);
+
+                if (string.IsNullOrEmpty(normalizedVerificationCode))
+                {
+                    return new ServiceUserLoginResult()
+                    {
+                        Errors = new List<ServiceGenericError>() {
+                            new ServiceGenericError()
+                            {
+                                Code = ServiceGenericErrorEnum.TwoFactorRequired,
+                                Message = "Two factor required"
+                            }
+                        }
+                    };
+                }
+
+                if (!await this.userManager.VerifyTwoFactorTokenAsync(user, tokenProvider, normalizedVerificationCode))
+                {
+                    return new ServiceUserLoginResult()
+                    {
+                        Errors = new List<ServiceGenericError>() {
+                            new ServiceGenericError()
+                            {
+                                Code = ServiceGenericErrorEnum.InvalidTwoFactor,
+                                Message = "Invalid two factor"
+                            }
+                        }
+                    };
+                }
+            }
+
             user.LastLoginDate = DateTime.UtcNow;
             await this.tokenaireContext.SaveChangesAsync();
 
             var jwt = await this.jwtService.GenerateJwt(identity, email);
+            var isTwoFactorAuthEnabled = await this.IsTwoFactorAuthEnabled(user.Id);
 
             return new ServiceUserLoginResult()
             {
@@ -366,7 +438,8 @@ namespace Tokenaire.Service
                 EncryptedSeed = user.EncryptedSeed,
                 Jwt = jwt,
 
-                IsFirstTimeLogging = isFirstTimeLogging
+                IsFirstTimeLogging = isFirstTimeLogging,
+                IsTwoFactorAuthEnabled = isTwoFactorAuthEnabled
             };
         }
 
@@ -427,6 +500,32 @@ namespace Tokenaire.Service
             var encodedEmail = Base58.Encode(Encoding.UTF8.GetBytes(user.Email));
 
             return $"{callbackUrl}/verify?code={encodedCode}&email={encodedEmail}";
+        }
+
+        private string FormatKey(string unformattedKey)
+        {
+            var result = new StringBuilder();
+            int currentPosition = 0;
+            while (currentPosition + 4 < unformattedKey.Length)
+            {
+                result.Append(unformattedKey.Substring(currentPosition, 4)).Append(" ");
+                currentPosition += 4;
+            }
+            if (currentPosition < unformattedKey.Length)
+            {
+                result.Append(unformattedKey.Substring(currentPosition));
+            }
+
+            return result.ToString().ToLowerInvariant();
+        }
+
+        private string GenerateQrCodeUri(string email, string unformattedKey)
+        {
+            return string.Format(
+                AuthenticatorUriFormat,
+                this.urlEncoder.Encode("Tokenaire"),
+                this.urlEncoder.Encode(email),
+                unformattedKey);
         }
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Query.Expressions;
@@ -9,11 +10,9 @@ using Tokenaire.Database.Models;
 
 namespace Tokenaire.Database
 {
-
-    public class TokenaireContext : DbContext
+    public class TokenaireContext : IdentityDbContext<DatabaseUser>
     {
         public DbSet<DatabaseEmail> Emails { get; set; }
-        public DbSet<DatabaseUser> Users { get; set; }
         public DbSet<DatabaseUserReferralLink> UserReferralLinks { get; set; }
         public DbSet<DatabaseUserRegistrationInfo> UserRegistrationInfos { get; set; }
 
@@ -65,7 +64,6 @@ namespace Tokenaire.Database
             this.DisableCascadingGlobally(modelBuilder);
             base.OnModelCreating(modelBuilder);
         }
-
 
 
         [DbFunction]

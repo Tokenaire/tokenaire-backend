@@ -4,10 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Tokenaire.Controllers.Models
 {
-    public class DtoUserLogin
+    public class DtoAuthenticatorKey
     {
-        public string Email { get; set; }
-        public string HashedPassword { get; set; }
-        public string VerificationCode { get; set; }
+        public string Key { get; set; }
+        public string KeyAsImage { get; set; }
     }
 }
