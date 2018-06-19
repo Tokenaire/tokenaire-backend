@@ -32,7 +32,9 @@ namespace Tokenaire.Service
         private readonly Dictionary<ServiceEmailTemplateEnum, string> templateMap = new Dictionary<ServiceEmailTemplateEnum, string>(){
             {ServiceEmailTemplateEnum.UserEmailVerificationStep1, "0752cef0-f918-4728-89d6-7968ebebb6d8"},
             {ServiceEmailTemplateEnum.UserKycSuccessful, "96c30b22-f86e-4f54-a78d-29fdfddaf2ab"},
-            {ServiceEmailTemplateEnum.UserKycFailed, "c498d6b6-b426-411e-ae94-0d80b499bcb3"}
+            {ServiceEmailTemplateEnum.UserKycFailed, "c498d6b6-b426-411e-ae94-0d80b499bcb3"},
+            {ServiceEmailTemplateEnum.AirePurchaseSuccessful, "ab415e9a-1f55-4bbd-bc9e-e87c66e1d9ea"},
+            {ServiceEmailTemplateEnum.AireSentSuccessful, "b7604c0b-c07c-4e98-8928-0e1177b6da5a"}
         };
 
         public EmailService(

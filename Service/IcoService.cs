@@ -55,6 +55,7 @@ namespace Tokenaire.Service
         private readonly IBitGoService bitGoService;
         private readonly IMemoryCache memoryCache;
         private readonly IIcoKycService icoKycService;
+        private readonly IEmailService emailService;
         private readonly IMathService mathService;
         private readonly IUserService userService;
         private readonly ISettingsService settingsService;
@@ -72,6 +73,7 @@ namespace Tokenaire.Service
             IBitGoService bitGoService,
             IMemoryCache memoryCache,
             IIcoKycService icoKycService,
+            IEmailService emailService,
             IMathService mathService,
             IUserService userService,
             ISettingsService settingsService,
@@ -86,6 +88,7 @@ namespace Tokenaire.Service
             this.bitGoService = bitGoService;
             this.memoryCache = memoryCache;
             this.icoKycService = icoKycService;
+            this.emailService = emailService;
             this.mathService = mathService;
             this.userService = userService;
             this.settingsService = settingsService;
@@ -95,7 +98,8 @@ namespace Tokenaire.Service
         public async Task<bool> SetRefundAddress(string userId, string BTCAddress)
         {
             var user = await this.tokenaireContext.Users.FirstAsync(x => x.Id == userId);
-            if (user.ICOBTCAddress == user.ICOBTCRefundAddress) {
+            if (user.ICOBTCAddress == user.ICOBTCRefundAddress)
+            {
                 throw new InvalidOperationException("not allowed");
             }
 
@@ -118,10 +122,12 @@ namespace Tokenaire.Service
 
         public async Task<ServiceIcoStatus> GetICOStatus()
         {
-            var icoStatus = ServiceIcoStatus.Finished;
+            var icoStatus = ServiceIcoStatus.NotYetStarted;
 
-            if (icoStatus == ServiceIcoStatus.Running) {
-                if (await this.GetAIRELeft() < 1000000) {
+            if (icoStatus == ServiceIcoStatus.Running)
+            {
+                if (await this.GetAIRELeft() < 1000000)
+                {
                     return ServiceIcoStatus.Finished;
                 }
 
@@ -275,7 +281,7 @@ namespace Tokenaire.Service
                 AIREToReceive = AIREToReceive,
 
                 OneAireInSatoshies = oneAirePriceInSatoshies,
-                DiscountRate = discountRate 
+                DiscountRate = discountRate
             };
         }
 
@@ -308,8 +314,8 @@ namespace Tokenaire.Service
             }
 
             return (
-                referralLinkRaisedBtcSatoshies, 
-                referralLinkEligibleBtcSatoshies, 
+                referralLinkRaisedBtcSatoshies,
+                referralLinkEligibleBtcSatoshies,
                 referralLinkUrl,
                 referralLinkUsedByPeople);
         }
@@ -374,6 +380,25 @@ namespace Tokenaire.Service
                     })
                 });
                 await this.tokenaireContext.SaveChangesAsync();
+
+                // if we sent AIRE tokens to user successfully,
+                // we'll notify him with emails.
+                if (icoTransaction.IsSuccessful == true)
+                {
+                    var marketPlaceLink = this.configuration.GetValue<string>("TokenairePlatformUrl");
+                    await this.emailService.SendSingleEmailUsingTemplate(new ServiceEmailSendUsingTemplate()
+                    {
+                        TemplateId = ServiceEmailTemplateEnum.AireSentSuccessful,
+                        ToEmail = user.Email,
+
+                        Substitutions = new List<ServiceEmailSendUsingTemplateSubstitution>() {
+                            new ServiceEmailSendUsingTemplateSubstitution("MARKETPLACE_LINK", marketPlaceLink),
+                            new ServiceEmailSendUsingTemplateSubstitution("VALUERECEIVED_SATOSHIES", icoTransaction.ValueReceivedInSatoshies.ToString()),
+                            new ServiceEmailSendUsingTemplateSubstitution("VALUESENT_INAIRE", icoTransaction.ValueSentInAIRE.ToString())
+                        }
+                    });
+                }
+
                 return wavesAssetTransferResponse.IsSuccessful;
             }
 
@@ -392,6 +417,7 @@ namespace Tokenaire.Service
                 return false;
             }
 
+            var marketPlaceLink = this.configuration.GetValue<string>("TokenairePlatformUrl");
             var icoTransaction = new DatabaseIcoTransaction()
             {
                 TxIdSource = receivedTransfer.TxId,
@@ -423,6 +449,17 @@ namespace Tokenaire.Service
                 })
             });
             await this.tokenaireContext.SaveChangesAsync();
+            await this.emailService.SendSingleEmailUsingTemplate(new ServiceEmailSendUsingTemplate()
+            {
+                TemplateId = ServiceEmailTemplateEnum.AirePurchaseSuccessful,
+                ToEmail = user.Email,
+
+                Substitutions = new List<ServiceEmailSendUsingTemplateSubstitution>() {
+                    new ServiceEmailSendUsingTemplateSubstitution("MARKETPLACE_LINK", marketPlaceLink),
+                    new ServiceEmailSendUsingTemplateSubstitution("VALUERECEIVED_SATOSHIES", icoTransaction.ValueReceivedInSatoshies.ToString()),
+                    new ServiceEmailSendUsingTemplateSubstitution("VALUESENT_INAIRE", icoTransaction.ValueSentInAIRE.ToString())
+                }
+            });
             return true;
         }
 
@@ -432,7 +469,7 @@ namespace Tokenaire.Service
             {
                 TxIdSource = icoTransaction.TxIdSource,
                 ICOBTCAddress = icoTransaction.ICOBTCAddress,
-                
+
                 ValueReceivedInSatoshies = icoTransaction.ValueReceivedInSatoshies,
                 ValueSentInAIRE = icoTransaction.ValueSentInAIRE,
 
@@ -456,8 +493,8 @@ namespace Tokenaire.Service
             var oneAireInSatoshiesRegisteredFromReferralLink = oneAireInSatoshies / 1.05;
 
             var oneAireInSatoshiesFinal = Math.Round(
-                string.IsNullOrEmpty(registeredFromReferralLinkId) ? 
-                    oneAireInSatoshies : 
+                string.IsNullOrEmpty(registeredFromReferralLinkId) ?
+                    oneAireInSatoshies :
                     oneAireInSatoshiesRegisteredFromReferralLink,
                 1);
 
