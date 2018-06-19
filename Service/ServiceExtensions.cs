@@ -17,6 +17,7 @@ using Tokenaire.Service.Models;
 using RestSharp;
 using Loggly;
 using AspNetCoreRateLimit;
+using System.Net;
 
 namespace Tokenaire.Service
 {
@@ -61,7 +62,9 @@ namespace Tokenaire.Service
 
             services.AddSingleton<IWavesCoinomatService, WavesCoinomatService>();
 
-            services.AddSingleton<ILookupClient, LookupClient>((x) => new LookupClient()
+            services.AddSingleton<ILookupClient, LookupClient>((x) => new LookupClient(
+                NameServer.GooglePublicDns,
+                NameServer.GooglePublicDns2)
             {
                 Timeout = TimeSpan.FromSeconds(5)
             });

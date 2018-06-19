@@ -75,10 +75,9 @@ namespace Tokenaire.Service
                 var mailAddress = new MailAddress(email);
                 var domain = mailAddress.Host;
 
-                var result = await this.lookupClient.QueryAsync(domain, QueryType.ANY).ConfigureAwait(false);
-                var records = result.Answers.Where(record => record.RecordType == DnsClient.Protocol.ResourceRecordType.A ||
-                                                             record.RecordType == DnsClient.Protocol.ResourceRecordType.AAAA ||
-                                                             record.RecordType == DnsClient.Protocol.ResourceRecordType.MX);
+                var result = await this.lookupClient.QueryAsync(domain, QueryType.MX).ConfigureAwait(false);
+                var records = result.Answers.Where(record => record.RecordType == DnsClient.Protocol.ResourceRecordType.MX);
+
                 return records.Any();
             }
             catch (Exception e)
