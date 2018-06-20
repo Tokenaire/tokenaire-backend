@@ -34,6 +34,11 @@ namespace tokenaire_backend.Controllers
             var joyceAssetId = "HyEhnk91FYXsbj1sYXWT5BvRqi256dx7kA4W8A5DkCvV";
             var reinhardAssetId = "G6ZGKQ18EeMhBTiUBh9dHPurxZDsaCQvincdwTws2AwA";
 
+            var andreySeverYukhinAssetId = "7DpGmusHSCE8VgRv42BXWAevMT7qjaREHw47Ubz3iMj8";
+            var jacobSeverAssetId = "HvGYiBRVUsb5TfyNfWcvgSYz7t9yPMrifS4wXjm5U8pA";
+            var peterSeverAssetId = "DSPjwX7sLsr846ixATC2JEaAGAvNWbpP8Y1a771dQNXe";
+            var olyaLaktyushinaAssetId = "4A2SBur94T3KVjr1VmsPJfAuaDBFRhGXHQkNuSVdUoRA";
+
             return Ok(new DtoTokenSearchResults()
             {
                 DefaultAssetIdPair = new KeyValuePair<string, string>(aireTokenAssetId, "WAVES"),
@@ -106,9 +111,55 @@ namespace tokenaire_backend.Controllers
                         ShowDivider = true,
                     },
 
+                    // oo
+                    
+                    new DtoTokenSearchResult() {
+                        Id = Guid.NewGuid().ToString(),
+                        Image = "/img/icons/andrey-avatar.png",
+                        Name = "Andrey Severyukhin",
 
+                        AmountAssetId = aireTokenAssetId,
+                        PriceAssetId = andreySeverYukhinAssetId,
 
+                        IsGeneric = false,
+                        ShowDivider = true,
+                    },
 
+                    new DtoTokenSearchResult() {
+                        Id = Guid.NewGuid().ToString(),
+                        Image = "/img/icons/peter-avatar.png",
+                        Name = "Peter Sever",
+
+                        AmountAssetId = aireTokenAssetId,
+                        PriceAssetId = peterSeverAssetId,
+
+                        IsGeneric = false,
+                        ShowDivider = true,
+                    },
+
+                    new DtoTokenSearchResult() {
+                        Id = Guid.NewGuid().ToString(),
+                        Image = "/img/icons/jacob-avatar.png",
+                        Name = "Jacob Sever",
+
+                        AmountAssetId = aireTokenAssetId,
+                        PriceAssetId = jacobSeverAssetId,
+
+                        IsGeneric = false,
+                        ShowDivider = true,
+                    },
+
+                    new DtoTokenSearchResult() {
+                        Id = Guid.NewGuid().ToString(),
+                        Image = "/img/icons/olya-avatar.png",
+                        Name = "Olya Laktyushina",
+
+                        AmountAssetId = aireTokenAssetId,
+                        PriceAssetId = olyaLaktyushinaAssetId,
+
+                        IsGeneric = false,
+                        ShowDivider = true,
+                    },
                 }
             });
         }
