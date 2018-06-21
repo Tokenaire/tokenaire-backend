@@ -271,6 +271,7 @@ namespace Tokenaire.Service
                 Email = email,
                 EncryptedSeed = model.EncryptedSeed,
 
+                BTCAddress = model.BTCAddress,
                 Address = model.Address,
                 PublicKey = model.PublicKey,
                 Signature = model.Signature,

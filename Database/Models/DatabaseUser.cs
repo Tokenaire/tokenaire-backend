@@ -11,6 +11,7 @@ namespace Tokenaire.Database.Models
     {
         public string EncryptedSeed { get; set; }
 
+        public string BTCAddress { get; set; }
         public string Address { get; set; }
         public string PublicKey { get; set; }
         public string Signature { get; set; }
@@ -37,6 +38,8 @@ namespace Tokenaire.Database.Models
 
             builder.Property(x => x.EncryptedSeed).IsRequired();
             builder.Property(x => x.Address).IsRequired();
+            builder.Property(x => x.BTCAddress).IsRequired();
+
             builder.Property(x => x.PublicKey).IsRequired();
             builder.Property(x => x.Signature).IsRequired();
             builder.Property(x => x.RegisteredFromIP).IsRequired();

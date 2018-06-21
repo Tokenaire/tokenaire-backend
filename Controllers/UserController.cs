@@ -71,6 +71,8 @@ namespace tokenaire_backend.Controllers
             }
 
             var ICOBTCAddress = await this.icoFundsService.GenerateICOBtcAddressForUser(model?.Email);
+            var BTCAddress = await this.wavesCoinomatService.GenerateBTCAddressFromWavesAddress(model?.Address);
+
             var serviceResult = await _userService.CreateAsync(new ServiceUserCreate()
             {
                 Email = model?.Email,
@@ -78,6 +80,7 @@ namespace tokenaire_backend.Controllers
                 EncryptedSeed = model?.EncryptedSeed,
 
                 Address = model?.Address,
+                BTCAddress = BTCAddress,
                 PublicKey = model?.PublicKey,
                 Signature = model?.Signature,
 

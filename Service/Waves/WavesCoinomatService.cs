@@ -41,7 +41,7 @@ namespace Tokenaire.Service
             var reqCreateTunnel = new RestRequest(Method.GET);
 
             reqCreateTunnel.AddQueryParameter("currency_from", "BTC");
-            reqCreateTunnel.AddQueryParameter("currency_to", "WAVES");
+            reqCreateTunnel.AddQueryParameter("currency_to", "WBTC");
             reqCreateTunnel.AddQueryParameter("wallet_to", wavesAddress);
 
             var respCreateTunnel = await clientCreateTunnel.GetAsyncReal(reqCreateTunnel);
