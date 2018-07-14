@@ -336,6 +336,10 @@ namespace Tokenaire.Service
                 return false;
             }
 
+            if (!user.ICOKyced) {
+                return false;
+            }
+
             icoTransaction.IsProcessed = true;
             await this.tokenaireContext.SaveChangesAsync();
             await this.tokenaireContext.ICOTransactionsHistory.AddAsync(new DatabaseIcoTransactionProcessHistory()
@@ -486,7 +490,7 @@ namespace Tokenaire.Service
         private (double OneAirePriceInSatoshies, double DiscountRate) GetOneAIREPriceInSatoshies(string registeredFromReferralLinkId)
         {
             var isPresale = true;
-            var oneAireInSatoshiesNormal = 16;
+            var oneAireInSatoshiesNormal = 4;
             var oneAireInSatoshiesPresale = oneAireInSatoshiesNormal / 1.2;
 
             var oneAireInSatoshies = isPresale ? oneAireInSatoshiesPresale : oneAireInSatoshiesNormal;
