@@ -123,6 +123,9 @@ namespace Tokenaire.Service
         public async Task<ServiceIcoStatus> GetICOStatus()
         {
             var icoStatus = ServiceIcoStatus.NotYetStarted;
+            if (DateTime.UtcNow > new DateTime(2018, 07, 14, 10, 0, 0)) {
+                icoStatus = ServiceIcoStatus.Running;
+            }
 
             if (icoStatus == ServiceIcoStatus.Running)
             {
