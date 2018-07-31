@@ -38,6 +38,8 @@ namespace tokenaire_backend.Controllers
             var jacobSeverAssetId = "HvGYiBRVUsb5TfyNfWcvgSYz7t9yPMrifS4wXjm5U8pA";
             var peterSeverAssetId = "DSPjwX7sLsr846ixATC2JEaAGAvNWbpP8Y1a771dQNXe";
             var olyaLaktyushinaAssetId = "4A2SBur94T3KVjr1VmsPJfAuaDBFRhGXHQkNuSVdUoRA";
+            var cryptoRandAssetId ="2smMpPSoo5oBmdjeQRmb71uaW7aogCzFozWs4ahF2KNk";
+            var zissouAssetId = "6xxprVu1oVeRfuUGWyXpahDChQ9vGgjW7bBjQwpbdQ4T";
 
             return Ok(new DtoTokenSearchResults()
             {
@@ -73,6 +75,29 @@ namespace tokenaire_backend.Controllers
                         IsGeneric = true
                     },
 
+                    new DtoTokenSearchResult() {
+                        Id = Guid.NewGuid().ToString(),
+                        Image = "/img/icons/rand-avatar.png",
+                        Name = "Crypto Rand",
+
+                        AmountAssetId = aireTokenAssetId,
+                        PriceAssetId = cryptoRandAssetId,
+
+                        IsGeneric = false,
+                        ShowDivider = true,
+                    },
+
+                    new DtoTokenSearchResult() {
+                        Id = Guid.NewGuid().ToString(),
+                        Image = "/img/icons/Zissou-avatar.png",
+                        Name = "Zissou",
+
+                        AmountAssetId = aireTokenAssetId,
+                        PriceAssetId = zissouAssetId,
+
+                        IsGeneric = false,
+                        ShowDivider = true,
+                    },
 
 
                     new DtoTokenSearchResult() {

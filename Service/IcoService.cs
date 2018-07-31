@@ -127,6 +127,10 @@ namespace Tokenaire.Service
                 icoStatus = ServiceIcoStatus.Running;
             }
 
+            if (DateTime.UtcNow >= new DateTime(2018, 10, 31, 10, 0, 0)) {
+                icoStatus = ServiceIcoStatus.Finished;
+            }
+
             if (icoStatus == ServiceIcoStatus.Running)
             {
                 if (await this.GetAIRELeft() < 1000000)
@@ -492,11 +496,22 @@ namespace Tokenaire.Service
 
         private (double OneAirePriceInSatoshies, double DiscountRate) GetOneAIREPriceInSatoshies(string registeredFromReferralLinkId)
         {
-            var isPresale = true;
-            var oneAireInSatoshiesNormal = 4;
-            var oneAireInSatoshiesPresale = oneAireInSatoshiesNormal / 1.2;
+            var curTime = DateTime.UtcNow;
+            var isEarlyBirdRound = curTime >= new DateTime(2018, 07, 14, 10, 0, 0) && 
+                curTime <= new DateTime(2018, 08, 31, 23, 59, 59);
 
-            var oneAireInSatoshies = isPresale ? oneAireInSatoshiesPresale : oneAireInSatoshiesNormal;
+            var isPresaleRound = curTime >= new DateTime(2018, 09, 01, 0, 0, 0) && 
+                curTime <= new DateTime(2018, 09, 30, 10, 0, 0);
+
+            var oneAireInSatoshiesNormal = 4;
+            var oneAireInSatoshiesEarlyBird = oneAireInSatoshiesNormal / 1.2;
+            var oneAireInSatoshiesPresale = oneAireInSatoshiesNormal / 1.1;
+            var oneAireInSatoshies = (double) oneAireInSatoshiesNormal;
+
+            if (isEarlyBirdRound || isPresaleRound) {
+                oneAireInSatoshies = isEarlyBirdRound ? oneAireInSatoshiesEarlyBird : oneAireInSatoshiesPresale;
+            }
+
             var oneAireInSatoshiesRegisteredFromReferralLink = oneAireInSatoshies / 1.05;
 
             var oneAireInSatoshiesFinal = Math.Round(
